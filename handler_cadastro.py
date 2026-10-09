@@ -1,6 +1,5 @@
 # handler_cadastro.py
 import re
-from database import supabase
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.ext import ContextTypes, ConversationHandler
 from database import salvar_regulacao, registrar_consentimento_lgpd, supabase
@@ -43,93 +42,44 @@ async def receber_procedimento(update: Update, context: ContextTypes.DEFAULT_TYP
     # Restante do código do termo LGPD...
 
 async def iniciar_cadastro_manual(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    from handler import (
-        verificar_plano_ativo,
-        enviar_alerta_plano_expirado,
-        enviar_oferta_limite_atingido,
-        _obter_limite_plano,
-    )
-    from database import supabase, iniciar_degustacao
-    import logging
-    logger = logging.getLogger(__name__)
-
+    """Inicia o cadastro de uma nova regulação institucional."""
     user_id = update.effective_user.id
+    LIMITE_MAX = 10
 
-    # 1. Verifica se tem registro de assinatura
+    # Verifica quantas regulações o usuário já cadastrou
     try:
-        res = supabase.table("assinaturas").select(
-            "tipo_plano, status, usou_degustacao, limite_ids"
-        ).eq("chat_id", str(user_id)).execute()
-        tem_registro = bool(res.data)
-        info = res.data[0] if res.data else {}
-        usou_degustacao = info.get("usou_degustacao", False)
-    except Exception as e:
-        logger.error(f"Erro ao consultar assinatura: {e}")
-        tem_registro = False
-        info = {}
-        usou_degustacao = False
-
-    # 2. Usuário NOVO → ativa degustação automaticamente
-    if not tem_registro:
-        try:
-            await iniciar_degustacao(user_id)
-            logger.info(f"🎁 Degustação ativada automaticamente para novo usuário {user_id}")
-            # Recarrega o info
-            res = supabase.table("assinaturas").select(
-                "tipo_plano, status, limite_ids"
-            ).eq("chat_id", str(user_id)).execute()
-            info = res.data[0] if res.data else {}
-        except Exception as e:
-            logger.error(f"Erro ao ativar degustação: {e}")
-    else:
-        # 3. Verifica se o plano está ativo
-        ativo, info_ativo = verificar_plano_ativo(user_id)
-        if not ativo:
-            # 3.1. Nunca usou degustação? Pode usar
-            if not usou_degustacao:
-                try:
-                    await iniciar_degustacao(user_id)
-                    logger.info(f"🎁 Degustação ativada para {user_id}")
-                except Exception as e:
-                    logger.error(f"Erro ao ativar degustação: {e}")
-            # 3.2. Já usou degustação e não tem plano → win-back
-            else:
-                await enviar_alerta_plano_expirado(update, context)
-                return ConversationHandler.END
-        else:
-            info = info_ativo
-
-    # 4. Verifica LIMITE de regulações
-    try:
-        res_count = supabase.table("AlertaSUS_2.0").select("id", count="exact").eq("chat_id", user_id).execute()
-        total_regs = res_count.count if hasattr(res_count, "count") and res_count.count is not None else len(res_count.data or [])
+        res = supabase.table("AlertaSUS_2.0").select("id", count="exact").eq("chat_id", user_id).execute()
+        total_regs = res.count if hasattr(res, "count") and res.count is not None else len(res.data or [])
     except Exception as e:
         logger.error(f"Erro ao contar regulações: {e}")
         total_regs = 0
 
-        # Cortesia = acesso ilimitado, nunca bloqueia
-    tipo_atual = str(info.get("tipo_plano") or "").lower()
-    if "cortesia" in tipo_atual:
-        limite = 999
-    else:
-        limite = _obter_limite_plano(info)
-
-    if total_regs >= limite:
-        logger.info(f"⏸️ Limite atingido: {total_regs}/{limite} para {user_id}")
-        await enviar_oferta_limite_atingido(update, context, total_regs, limite)
+        if total_regs >= LIMITE_MAX:
+        await update.message.reply_text(
+            f"📌 <b>Limite de regulações atingido</b>\n\n"
+            f"Você já cadastrou <b>{total_regs}/{LIMITE_MAX}</b> regulações — "
+            "esse é o máximo permitido pelo sistema.\n\n"
+            "💡 <b>Como cadastrar novas regulações?</b>\n"
+            "Você pode <b>excluir</b> regulações antigas que já foram finalizadas "
+            "e liberar espaço. Use o comando:\n\n"
+            "<code>/excluir</code>\n\n"
+            "Assim que excluir uma, poderá cadastrar novas normalmente. 😊",
+            parse_mode="HTML"
+        )
         return ConversationHandler.END
 
-    # 5. Continua o fluxo
+    # Continua o fluxo normal
     context.user_data.clear()
     await update.message.reply_text(
         "📝 <b>Iniciando cadastro de nova regulação.</b>\n\n"
-        f"Você tem <b>{total_regs}/{limite}</b> regulações monitoradas.\n\n"
+        f"Você tem <b>{total_regs}/{LIMITE_MAX}</b> regulações cadastradas.\n\n"
         "Por favor, digite o <b>número do Cartão SUS</b> do paciente (15 dígitos):",
-        parse_mode="HTML", reply_markup=TECLADO_CANCELAR
+        parse_mode="HTML",
+        reply_markup=TECLADO_CANCELAR
     )
-    print(f"🔵 DEBUG CADASTRO: setando _em_fluxo_admin=cadastro", flush=True)
     context.user_data["_em_fluxo_admin"] = "cadastro"
     return ETAPA_SUS
+
 
 async def receber_sus(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     if await verificar_se_e_menu_e_executar(update, context): return ConversationHandler.END

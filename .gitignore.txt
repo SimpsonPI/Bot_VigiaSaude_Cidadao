@@ -1,7 +1,0 @@
-enquetes_data.json
-main_backup.py
-.env
-.venv/
-__pycache__/
-*.pyc
-teaser_data.json

@@ -150,13 +150,6 @@ async def enviar_resposta(update: Update, texto: str, parse_mode="HTML", reply_m
 # ═══════════════════════════════════════════════
 
 async def comando_verificar_todas(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    # 🔒 Bloqueio de plano expirado
-    from handler import verificar_plano_ativo, enviar_alerta_plano_expirado
-    user_id = update.effective_user.id
-    ativo, info = verificar_plano_ativo(user_id)
-    if not ativo:
-        await enviar_alerta_plano_expirado(update, context)
-        return
 
     # 🆕 LIMITE DIÁRIO + INTERVALO
     from verificacao_limite import pode_verificar, registrar_verificacao
@@ -259,13 +252,6 @@ async def comando_verificar_todas(update: Update, context: ContextTypes.DEFAULT_
 # ═══════════════════════════════════════════════
 
 async def iniciar_verificar_especifico(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    # 🔒 Bloqueio de plano expirado
-    from handler import verificar_plano_ativo, enviar_alerta_plano_expirado
-    user_id = update.effective_user.id
-    ativo, info = verificar_plano_ativo(user_id)
-    if not ativo:
-        await enviar_alerta_plano_expirado(update, context)
-        return ConversationHandler.END
 
     try:
         user_id = update.effective_user.id
@@ -319,12 +305,12 @@ async def iniciar_verificar_especifico(update: Update, context: ContextTypes.DEF
             "<i>Ou digite o ID abaixo:</i>\n\n"
 
             "🎨 <b>ENTENDA AS CORES:</b>\n"
-            "🟢 <b>Agendada</b> — Consulta marcada! Confirme no posto.\n"
+            "🟢 <b>Agendada</b> — Consulta marcada! Vá ao posto imediatamente.\n"
             "🟡 <b>Em fila</b> — Aguardando. Continue monitorando.\n"
-            "🔵 <b>Vencida</b> — Renove no posto o quanto antes!\n"
-            "🔴 <b>Cancelada</b> — Precisa de atenção imediata.\n"
-            "🟣 <b>Reativar</b> — Voltou a valer. Acompanhe.\n"
-            "⚪ <b>Sem status</b> — Ainda não localizada.\n\n"
+            "🔵 <b>Vencida</b> — Após 60 dias sem revalidação. Renove no posto.\n"
+            "🔴 <b>Cancelada</b> — Prazo ultrapassado. Procure o posto.\n"
+            "🟣 <b>Revalidar</b> — Mais de 60 dias. Ir ao posto para revalidar a regulação.\n"
+            "⚪ <b>Sem status</b> — Ainda não informada pelo Portal FMS.\n\n"
 
             "💡 <i>Fique de olho nas 🟡 <b>Em fila</b> — são as que mais mudam de status!</i>\n\n"
 
@@ -353,13 +339,6 @@ async def iniciar_verificar_especifico(update: Update, context: ContextTypes.DEF
 async def processar_verificar_especifico(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Processa o clique/digitação da consulta específica."""
     try:
-        # 🔒 Bloqueio de plano expirado
-        from handler import verificar_plano_ativo, enviar_alerta_plano_expirado
-        user_id = update.effective_user.id
-        ativo, info = verificar_plano_ativo(user_id)
-        if not ativo:
-            await enviar_alerta_plano_expirado(update, context)
-            return ConversationHandler.END
 
         # Identifica o número da regulação (callback ou texto)
         if update.callback_query:

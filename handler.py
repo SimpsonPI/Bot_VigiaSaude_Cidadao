@@ -316,261 +316,14 @@ def usuario_tem_acesso(plano_info: dict) -> bool:
     )
 
 
-async def comando_planos(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Tela unificada: mostra status atual + planos disponíveis para assinatura."""
-    user_id = update.effective_user.id
-    chat_id_str = str(user_id)
 
-    # ─── Busca dados do usuário no Supabase ───
-    try:
-        res = (
-            supabase.table("assinaturas")
-            .select("*")
-            .eq("chat_id", chat_id_str)
-            .order("created_at", desc=True)
-            .execute()
-        )
-        dados = res.data if res and hasattr(res, "data") else []
-    except Exception as e:
-        logger.error(f"Erro ao consultar assinaturas: {e}")
-        dados = []
-
-    plano_info = dados[0] if dados else {}
-    tipo_plano = str(plano_info.get("tipo_plano", "")).strip().lower()
-    is_cortesia = tipo_plano == "cortesia"
-    is_degustacao = tipo_plano == "degustacao"
-    is_ativo = usuario_tem_acesso(plano_info)
-
-    # ─── Calcula dias restantes ───
-    from datetime import datetime, timezone
-
-    venc = plano_info.get("data_vencimento")
-    dias_restantes = None
-    venc_txt = None
-
-    if venc:
-        try:
-            venc_dt = datetime.fromisoformat(str(venc).replace("Z", "+00:00"))
-            dias_restantes = max(0, (venc_dt - datetime.now(timezone.utc)).days)
-            venc_txt = venc_dt.strftime("%d/%m/%Y")
-        except Exception:
-            pass
-
-    # ─── Monta o cabeçalho com o status atual ───
-    if is_cortesia:
-        cabecalho = (
-            "👑 <b>Você é Cortesia VIP!</b>\n\n"
-            "• <b>Plano:</b> Cortesia (Ilimitado)\n"
-            "• <b>Status:</b> Ativo 🟢\n"
-            "• <b>Vencimento:</b> Sem vencimento\n"
-        )
-    elif is_degustacao and is_ativo:
-        dias_txt = f"{dias_restantes} dia(s)" if dias_restantes is not None else "?"
-        cabecalho = (
-            "🎁 <b>Você está na Degustação (Grátis)</b>\n\n"
-            "• <b>Plano:</b> Degustação\n"
-            "• <b>Status:</b> Ativo 🟢\n"
-            f"• <b>Vence em:</b> {venc_txt or '—'}\n"
-            f"• <b>Dias restantes:</b> {dias_txt}\n"
-        )
-    elif is_ativo:
-        nomes_planos = {
-            "pro": "Pro",
-            "pro_trimestral": "Pro Trimestral",
-            "trimestral": "Pro Trimestral",
-            "pro_semestral": "Pro Semestral",
-            "semestral": "Pro Semestral",
-        }
-        tipo_formatado = nomes_planos.get(tipo_plano, "Pro")
-        dias_txt = f"{dias_restantes} dia(s)" if dias_restantes is not None else "—"
-
-        # Alerta se estiver perto de vencer
-        alerta_venc = ""
-        if dias_restantes is not None and dias_restantes <= 3:
-            alerta_venc = "\n⚠️ <b>Atenção: seu plano está prestes a vencer!</b>\n"
-
-        cabecalho = (
-            f"✨ <b>Sua Assinatura está Ativa!</b>\n\n"
-            f"• <b>Plano:</b> {tipo_formatado}\n"
-            f"• <b>Status:</b> Ativo 🟢\n"
-            f"• <b>Vence em:</b> {venc_txt or '—'}\n"
-            f"• <b>Dias restantes:</b> {dias_txt}\n"
-            f"{alerta_venc}"
-        )
-    else:
-        cabecalho = (
-            "💳 <b>Você ainda não possui um plano ativo</b>\n\n"
-            "Ative uma degustação gratuita ou assine um dos nossos planos.\n"
-        )
-
-    # ─── Monta o bloco de planos disponíveis ───
-    planos_txt = (
-        "\n"
-        "━━━━━━━━━━━━━━━━━━━━━━\n"
-        "💎 <b>Planos Disponíveis</b>\n"
-        "━━━━━━━━━━━━━━━━━━━━━━\n\n"
-        "• ⭐ <b>Trimestral</b> — R$ 9,99 (3 meses)\n"
-        "  <i>Até 5 regulações monitoradas</i>\n\n"
-        "• 🚀 <b>Semestral</b> — R$ 14,99 (6 meses)\n"
-        "  <i>Até 9 regulações monitoradas</i>\n\n"
-        "💠 <b>Pagamento:</b> Pix (QR Code ou Copia e Cola)\n"
-        "⚡ <b>Liberação:</b> Instantânea após a confirmação\n"
-    )
-
-    # ─── Junta tudo ───
-    texto_final = cabecalho + planos_txt
-
-    # ─── Cria os botões ───
-    teclado = await obter_menu_planos(user_id)
-
-    # ─── Envia ───
-    if update.callback_query:
-        await update.callback_query.answer()
-        try:
-            await update.callback_query.edit_message_text(
-                texto_final, parse_mode="HTML", reply_markup=teclado
-            )
-        except Exception:
-            await update.callback_query.message.reply_text(
-                texto_final, parse_mode="HTML", reply_markup=teclado
-            )
-    else:
-        await update.message.reply_text(
-            texto_final, parse_mode="HTML", reply_markup=teclado
-        )
-
-
-async def detalhar_plano(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Ativa a degustação ou exibe opções de pagamento via Pix."""
-    query = update.callback_query
-    try:
-        await query.answer()
-    except Exception:
-        pass
-
-    data = query.data
-    telegram_id = query.from_user.id
-
-    if data == "plano_degustacao":
-        from datetime import datetime, timezone, timedelta
-
-        agora = datetime.now(timezone.utc)
-        vencimento = agora + timedelta(days=7)
-
-        try:
-            supabase.table("assinaturas").upsert(
-                {
-                    "chat_id": str(telegram_id),
-                    "tipo_plano": "degustacao",
-                    "status": "ativo",
-                    "data_vencimento": vencimento.isoformat(),
-                    "limite_ids": 2,          # ← CORRIGIDO (era 999)
-                    "usou_degustacao": True,
-                    "ultimo_aviso": None,
-                },
-                on_conflict="chat_id",
-            ).execute()
-        except Exception as err:
-            logger.error(f"Erro ao gravar degustação: {err}")
-
-        texto = (
-            "🎁 <b>Degustação Ativada — 7 dias grátis!</b>\n\n"
-            f"Você tem acesso ao VigiaSaúde até <b>{vencimento.strftime('%d/%m/%Y')}</b>.\n\n"
-            "<b>O que você ganha na degustação:</b>\n"
-            "✅ Até <b>2 regulações</b> monitoradas\n"
-            "✅ Avisos automáticos de mudança de status\n"
-            "✅ Suporte via bot de atendimento\n\n"
-            "💡 <i>Quer monitorar mais regulações? Assine um plano Pro:</i>"
-        )
-        keyboard_botoes = [
-            [
-                InlineKeyboardButton(
-                    "⭐ Trimestral (R$ 9,99)", callback_data="plano_trimestral"
-                )
-            ],
-            [
-                InlineKeyboardButton(
-                    "🚀 Semestral (R$ 14,99)", callback_data="plano_semestral"
-                )
-            ],
-            [InlineKeyboardButton("💳 Ver todos os planos", callback_data="planos")],
-        ]
-
-    elif data == "plano_trimestral":
-        texto = "⭐ <b>Plano Trimestral</b>\n\n• Até 5 regulações.\n<b>Valor:</b> R$ 9,99 / trimestre"
-        keyboard_botoes = [
-            [InlineKeyboardButton("💳 Pagar via Pix", callback_data="pix_trimestral")],
-            [InlineKeyboardButton("⬅️ Voltar aos Planos", callback_data="planos")],
-        ]
-
-    elif data == "plano_semestral":
-        texto = "🚀 <b>Plano Semestral</b>\n\n• Até 9 regulações.\n<b>Valor:</b> R$ 14,99 / semestre"
-        keyboard_botoes = [
-            [InlineKeyboardButton("💳 Pagar via Pix", callback_data="pix_semestral")],
-            [InlineKeyboardButton("⬅️ Voltar aos Planos", callback_data="planos")],
-        ]
-
-    else:
-        texto = "Opção inválida."
-        keyboard_botoes = [[InlineKeyboardButton("⬅️ Voltar", callback_data="planos")]]
-
-    await query.edit_message_text(
-        text=texto,
-        parse_mode="HTML",
-        reply_markup=InlineKeyboardMarkup(keyboard_botoes),
-    )
 
 def verificar_plano_ativo(user_id: int) -> tuple[bool, dict]:
     """
-    Verifica se o usuário tem plano ativo.
-    Retorna (ativo: bool, info: dict)
+    No bot institucional, todos os usuários têm acesso liberado.
+    Mantida por compatibilidade com o código existente.
     """
-    from datetime import datetime, timezone
-    from database import supabase
-
-    try:
-        res = (
-            supabase.table("assinaturas")
-            .select("*")
-            .eq("chat_id", str(user_id))
-            .order("created_at", desc=True)
-            .execute()
-        )
-        dados = res.data if res and hasattr(res, "data") else []
-    except Exception as e:
-        logger.error(f"Erro ao verificar plano: {e}")
-        return False, {}
-
-    if not dados:
-        return False, {}
-
-    info = dados[0]
-    status = str(info.get("status", "")).strip().lower()
-    tipo = str(info.get("tipo_plano", "")).strip().lower()
-
-    # Cortesia sempre ativa
-    if tipo == "cortesia":
-        return True, info
-
-    # Status precisa ser ativo
-    if status not in ("ativo", "active", "ativa"):
-        return False, info
-
-    # Verifica vencimento
-    venc = info.get("data_vencimento")
-    if not venc:
-        return False, info
-
-    try:
-        venc_dt = datetime.fromisoformat(str(venc).replace("Z", "+00:00"))
-        from datetime import timedelta
-        if datetime.now(timezone.utc) >= (venc_dt - timedelta(hours=12)):
-            return False, info
-    except Exception as e:
-        logger.error(f"Erro ao parsear vencimento: {e}")
-        return False, info
-
-    return True, info
+    return (True, {"tipo_plano": "institucional", "status": "ativo"})
 
 
 async def enviar_alerta_plano_expirado(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -1070,7 +823,6 @@ verificar_todos = comando_verificar_todas
 verificar_especifico = iniciar_verificar_especifico
 cadastrar_nova = iniciar_cadastro_manual
 corrigir = iniciar_corrigir
-planos = comando_planos
 excluir = iniciar_excluir
 privacidade = comando_privacidade
 
@@ -1668,7 +1420,6 @@ __all__ = [
     "callback_faq_suporte",
     "callback_privacidade_voltar",
     "callback_optout_teaser",
-    "comando_planos",
     "cancelar_operacao",
     "configurar_menu_comandos",
     "executar_varredura_automatica",
@@ -1699,7 +1450,6 @@ __all__ = [
     "conv_excluir",
     "obter_menu_principal",
     "obter_menu_planos",
-    "detalhar_plano",
     "comando_atendimento",
     "comando_faq",
     "voltar_menu_atendimento",
