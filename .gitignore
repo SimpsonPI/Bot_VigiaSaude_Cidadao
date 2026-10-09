@@ -1,4 +1,3 @@
-@"
 .venv/
 *.pyc
 .env
@@ -14,4 +13,3 @@ Bot_VigiaSaude.rar
 .vscode/
 .idea/
 !.env.example
-"@ | Set-Content .gitignore
