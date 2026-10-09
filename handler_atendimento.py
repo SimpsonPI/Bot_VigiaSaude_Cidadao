@@ -30,12 +30,12 @@ AGUARDANDO_MENSAGEM_CHAMADO = 1
 async def menu_atendimento(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Exibe o menu principal de atendimento ao cliente."""
     texto = (
-        "🤖 <b>Central de Atendimento VigiaSaude</b>\n\n"
+        "🤖 <b>Central de Atendimento VigiaSaude Cidadao</b>\n\n"
         "Olá! Como posso ajudar você hoje?\n\n"
         "<b>Opções disponíveis:</b>\n"
         "• ❓ <b>FAQ Automático:</b> Respostas instantâneas para dúvidas frequentes\n"
         "• 👤 <b>Atendimento Humanizado:</b> Fale diretamente com nossa equipe\n"
-        "• 📧 <b>Email de Suporte:</b> suportevigiasaude@gmail.com\n\n"
+        "• 📧 <b>Email de Suporte:</b> suporteVigiaSaude Cidadao@gmail.com\n\n"
         "Selecione uma opção abaixo:"
     )
     
@@ -45,7 +45,7 @@ async def menu_atendimento(update: Update, context: ContextTypes.DEFAULT_TYPE):
             InlineKeyboardButton("👤 Atendimento Humanizado", callback_data="atendimento_humanizado")
         ],
         [
-            InlineKeyboardButton("📧 Email de Suporte", url="mailto:suportevigiasaude@gmail.com")
+            InlineKeyboardButton("📧 Email de Suporte", url="mailto:suporteVigiaSaude Cidadao@gmail.com")
         ],
         [InlineKeyboardButton("⬅️ Voltar ao Menu Principal", callback_data="iniciar")]
     ])
@@ -68,7 +68,7 @@ async def iniciar_faq(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.answer()
         
         texto = (
-            "📚 <b>FAQ Automático - VigiaSaude</b>\n\n"
+            "📚 <b>FAQ Automático - VigiaSaude Cidadao</b>\n\n"
             "Digite abaixo sua dúvida que nossa IA tentará responder automaticamente.\n"
             "Ou clique em um dos tópicos abaixo:\n\n"
             "1️⃣ Como cadastrar uma regulação?\n"
@@ -76,7 +76,7 @@ async def iniciar_faq(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "3️⃣ Onde encontrar o Cartão SUS ou ID?\n"
             "4️⃣ Como alterar meus dados?\n"
             "5️⃣ Planos e Assinaturas\n"
-            "6️⃣ O VigiaSaude tem vínculo com o governo?"
+            "6️⃣ O VigiaSaude Cidadao tem vínculo com o governo?"
         )
         
         teclado = InlineKeyboardMarkup([
@@ -99,7 +99,7 @@ async def iniciar_faq(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.edit_message_text(texto, parse_mode="HTML", reply_markup=teclado)
     else:
         texto = (
-            "📚 <b>FAQ Automático - VigiaSaude</b>\n\n"
+            "📚 <b>FAQ Automático - VigiaSaude Cidadao</b>\n\n"
             "Digite abaixo sua dúvida que nossa IA tentará responder automaticamente.\n"
             "Ou clique em um dos tópicos abaixo:"
         )
@@ -184,7 +184,7 @@ async def iniciar_atendimento_humanizado(update: Update, context: ContextTypes.D
         await query.answer()
         
         texto = (
-            "👤 <b>Atendimento Humanizado - VigiaSaude</b>\n\n"
+            "👤 <b>Atendimento Humanizado - VigiaSaude Cidadao</b>\n\n"
             "Você será atendido por nossa equipe especializada.\n\n"
             "Por favor, descreva sua dúvida ou problema abaixo.\n"
             "Nossa equipe responderá o mais breve possível (horário comercial: 08h às 18h).\n\n"
@@ -194,7 +194,7 @@ async def iniciar_atendimento_humanizado(update: Update, context: ContextTypes.D
         await query.edit_message_text(texto, parse_mode="HTML")
     else:
         await update.message.reply_text(
-            "👤 <b>Atendimento Humanizado - VigiaSaude</b>\n\n"
+            "👤 <b>Atendimento Humanizado - VigiaSaude Cidadao</b>\n\n"
             "Por favor, descreva sua dúvida ou problema abaixo.\n"
             "Nossa equipe responderá o mais breve possível.\n\n"
             "<i>Digite sua mensagem agora:</i>",
@@ -253,7 +253,7 @@ async def processar_mensagem_humanizado(update: Update, context: ContextTypes.DE
                 f"Seu protocolo de atendimento é: <code>#{chamado_id}</code>\n\n"
                 "Nossa equipe analisará seu chamado e responderá em breve.\n"
                 "Você receberá uma notificação assim que houver resposta.\n\n"
-                "📧 Para contato direto, utilize nosso email: suportevigiasaude@gmail.com",
+                "📧 Para contato direto, utilize nosso email: suporteVigiaSaude Cidadao@gmail.com",
                 parse_mode="HTML"
             )
         
@@ -271,7 +271,7 @@ async def processar_mensagem_humanizado(update: Update, context: ContextTypes.DE
         if update.message:
             await update.message.reply_text(
                 "❌ Ocorreu um erro ao registrar seu chamado.\n"
-                "Por favor, tente novamente ou contate: suportevigiasaude@gmail.com"
+                "Por favor, tente novamente ou contate: suporteVigiaSaude Cidadao@gmail.com"
             )
     
     return ConversationHandler.END

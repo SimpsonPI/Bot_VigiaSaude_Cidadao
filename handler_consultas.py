@@ -150,6 +150,13 @@ async def enviar_resposta(update: Update, texto: str, parse_mode="HTML", reply_m
 # ═══════════════════════════════════════════════
 
 async def comando_verificar_todas(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    # 🔒 Bloqueio de plano expirado
+    from handler import verificar_plano_ativo, enviar_alerta_plano_expirado
+    user_id = update.effective_user.id
+    ativo, info = verificar_plano_ativo(user_id)
+    if not ativo:
+        await enviar_alerta_plano_expirado(update, context)
+        return
 
     # 🆕 LIMITE DIÁRIO + INTERVALO
     from verificacao_limite import pode_verificar, registrar_verificacao
@@ -304,13 +311,13 @@ async def iniciar_verificar_especifico(update: Update, context: ContextTypes.DEF
             "🔍 <b>Selecione qual regulação deseja verificar:</b>\n"
             "<i>Ou digite o ID abaixo:</i>\n\n"
 
-            "🎨 <b>ENTENDA AS CORES:</b>\n"
-            "🟢 <b>Agendada</b> — Consulta marcada! Vá ao posto imediatamente.\n"
-            "🟡 <b>Em fila</b> — Aguardando. Continue monitorando.\n"
-            "🔵 <b>Vencida</b> — Após 60 dias sem revalidação. Renove no posto.\n"
-            "🔴 <b>Cancelada</b> — Prazo ultrapassado. Procure o posto.\n"
-            "🟣 <b>Revalidar</b> — Mais de 60 dias. Ir ao posto para revalidar a regulação.\n"
-            "⚪ <b>Sem status</b> — Ainda não informada pelo Portal FMS.\n\n"
+                        "🎨 <b>ENTENDA AS CORES:</b>\n"
+            "🟢 <b>Agendada</b> — Compareça à UBS para assinatura e carimbo de confirmação.\n"
+            "🟡 <b>Em fila</b> — Você está na fila de espera. Continue monitorando.\n"
+            "🔵 <b>Vencida</b> — Revalidação não feita no prazo de 60 dias ou data do procedimento ultrapassada. Renove na UBS.\n"
+            "🔴 <b>Cancelada</b> — Cancelada por você ou pelo portal FMS. Procure a UBS para justificativa.\n"
+            "🟣 <b>Revalidada</b> — Revalidação feita antes do prazo de 60 dias.\n"
+            "⚪ <b>Sem status</b> — Portal FMS ainda não retornou status.\n\n"
 
             "💡 <i>Fique de olho nas 🟡 <b>Em fila</b> — são as que mais mudam de status!</i>\n\n"
 
@@ -339,6 +346,14 @@ async def iniciar_verificar_especifico(update: Update, context: ContextTypes.DEF
 async def processar_verificar_especifico(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Processa o clique/digitação da consulta específica."""
     try:
+        user_id = update.effective_user.id
+
+        # 🔒 Bloqueio de plano expirado
+        from handler import verificar_plano_ativo, enviar_alerta_plano_expirado
+        ativo, info = verificar_plano_ativo(user_id)
+        if not ativo:
+            await enviar_alerta_plano_expirado(update, context)
+            return ConversationHandler.END
 
         # Identifica o número da regulação (callback ou texto)
         if update.callback_query:
@@ -413,7 +428,7 @@ async def processar_verificar_especifico(update: Update, context: ContextTypes.D
         except Exception as e:
             logger.error(f"Erro ao atualizar status_anterior: {e}")
 
-                # Contador final (usa o valor já calculado no início, sem re-consultar)
+        # Contador final
         restantes_agora = max(0, restantes - 1)
         await msg_alvo.reply_text(
             f"<i>📊 Verificações específicas restantes hoje: <b>{restantes_agora}/5</b></i>",

@@ -180,9 +180,18 @@ async def executar_acao_admin(update: Update, context: ContextTypes.DEFAULT_TYPE
 
     print(f"🔵 DEBUG IA ADMIN: chamada. _em_fluxo_admin={context.user_data.get('_em_fluxo_admin')}", flush=True)
 
-    if context.user_data.get("_em_fluxo_admin"):
+    em_fluxo = (
+        context.user_data.get("_em_fluxo_admin")
+        or context.user_data.get("_fluxo_corrigir_ativo")
+        or context.user_data.get("_fluxo_excluir_ativo")
+    )
+    if em_fluxo:
         print(f"🔵 DEBUG IA ADMIN: bloqueada (em fluxo)", flush=True)
         return
+
+    user_message = update.message.text
+
+    user_message = update.message.text
 
     user_message = update.message.text
     user_text_lower = user_message.lower()

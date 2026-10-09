@@ -57,26 +57,29 @@ async def iniciar_corrigir(update: Update, context: ContextTypes.DEFAULT_TYPE) -
         elif update.callback_query:
             await update.callback_query.message.reply_text(msg, reply_markup=InlineKeyboardMarkup(teclado), parse_mode="HTML")
 
-        context.user_data["_em_fluxo_admin"] = "corrigir"
+        context.user_data["_fluxo_corrigir_ativo"] = True
         return SELECIONAR_REGULACAO
     except Exception as e:
         logger.error(f"Erro em iniciar_corrigir: {e}")
-        context.user_data.pop("_em_fluxo_admin", None)
+        context.user_data.pop("_fluxo_corrigir_ativo", None)
         return ConversationHandler.END
 
-async def mostrar_resumo_regulacao(update_or_query, context, num_reg):
+async def mostrar_resumo_regulacao(update_or_query, context, num_reg, chat_id=None):
     """
     Busca os dados atuais da regulação no Supabase e exibe o resumo para confirmação.
     """
     try:
-        response = supabase.table("AlertaSUS_2.0").select("*").eq("numero_reg", num_reg).execute()
+        query = supabase.table("AlertaSUS_2.0").select("*").eq("numero_reg", num_reg)
+        if chat_id is not None:
+            query = query.eq("chat_id", chat_id)
+        response = query.execute()
         
         if response.data:
             reg = response.data[0]
             resumo = (
                 f"📋 <b>Regulação:</b> <code>{num_reg}</code>\n"
                 f"👤 <b>Paciente:</b> {reg.get('nome_paciente', 'Não informado')}\n"
-                f"🩺 <b>Especialidade / Especialidade:</b> {reg.get('cbo', 'Não informado')}\n"
+                f"🩺 <b>Especialidade:</b> {reg.get('cbo', 'Não informado')}\n"
                 f"📱 <b>Celular:</b> {reg.get('celular', 'Não informado')}\n"
                 f"🏥 <b>Procedimento:</b> {reg.get('procedimento', 'Não informado')}\n\n"
                 f"✅ <b>Alteração realizada com sucesso!</b>"
@@ -84,7 +87,7 @@ async def mostrar_resumo_regulacao(update_or_query, context, num_reg):
             
             teclado = [
                 [InlineKeyboardButton("✏️ Editar outro campo", callback_data=f"corr_reg_{num_reg}")],
-                [InlineKeyboardButton("🏁 Finalizar", callback_data="cancelar_corr")]
+                [InlineKeyboardButton("🏁 Finalizar", callback_data="finalizar_corr")]
             ]
             reply_markup = InlineKeyboardMarkup(teclado)
 
@@ -98,18 +101,38 @@ async def mostrar_resumo_regulacao(update_or_query, context, num_reg):
             await update_or_query.message.reply_text("✅ Campo atualizado com sucesso!", reply_markup=TECLADO_MENU)
 
 async def selecionar_regulacao_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    print(f"🔴 CALLBACK: {update.callback_query.data}", flush=True)
     query = update.callback_query
     await query.answer()
     data = query.data
 
-    if data == "cancelar_corr":
-        await query.edit_message_text("❌ Correção cancelada.")
+    if data == "finalizar_corr":
+        await query.edit_message_text("✅ Operação finalizada.")
         context.user_data.clear()
         return ConversationHandler.END
 
     if data.startswith("corr_reg_"):
         num_reg = data.replace("corr_reg_", "")
         context.user_data["edit_num_reg"] = num_reg
+
+        # Busca os dados atuais (filtrado por chat_id)
+        chat_id = update.effective_user.id
+        dados = {}
+        try:
+            res = supabase.table("AlertaSUS_2.0").select("*").eq("numero_reg", num_reg).eq("chat_id", chat_id).execute()
+            if res.data:
+                dados = res.data[0]
+        except Exception as e:
+            logger.error(f"Erro ao buscar dados da regulação: {e}")
+
+        resumo_atual = (
+            f"📋 <b>Regulação selecionada:</b> <code>{num_reg}</code>\n\n"
+            f"👤 <b>Paciente:</b> {dados.get('nome_paciente', 'Não informado')}\n"
+            f"🩺 <b>Especialidade:</b> {dados.get('cbo', 'Não informado')}\n"
+            f"📱 <b>Celular:</b> {dados.get('celular', 'Não informado')}\n"
+            f"🏥 <b>Procedimento:</b> {dados.get('procedimento', 'Não informado')}\n\n"
+            f"✏️ <b>Escolha qual campo deseja alterar:</b>"
+        )
 
         teclado = [
             [InlineKeyboardButton("🆔 ID da Regulação", callback_data="corr_campo_numero_reg")],
@@ -121,7 +144,7 @@ async def selecionar_regulacao_callback(update: Update, context: ContextTypes.DE
         ]
 
         await query.edit_message_text(
-            f"📋 Regulação selecionada: <b>{num_reg}</b>\n\nEscolha qual campo deseja alterar:",
+            resumo_atual,
             reply_markup=InlineKeyboardMarkup(teclado),
             parse_mode="HTML"
         )
@@ -284,7 +307,11 @@ async def salvar_novo_valor(update: Update, context: ContextTypes.DEFAULT_TYPE) 
             )
         else:
             # Exibe o resumo normal para outros campos
-            await mostrar_resumo_regulacao(update, context, num_reg)
+            try:
+                chat_id_int = int(chat_id)
+            except (ValueError, TypeError):
+                chat_id_int = chat_id
+            await mostrar_resumo_regulacao(update, context, num_reg, chat_id_int)
 
     except Exception as e:
         logger.error(f"Erro ao salvar alteração no Supabase: {e}")
@@ -327,11 +354,11 @@ async def iniciar_excluir(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             await update.message.reply_text(msg, reply_markup=InlineKeyboardMarkup(teclado), parse_mode="HTML")
         elif update.callback_query:
             await update.callback_query.message.reply_text(msg, reply_markup=InlineKeyboardMarkup(teclado), parse_mode="HTML")
-        context.user_data["_em_fluxo_admin"] = "excluir"
+        context.user_data["_fluxo_excluir_ativo"] = True
         return SELECIONAR_REGULACAO_EXCLUIR
     except Exception as e:
         logger.error(f"Erro em iniciar_excluir: {e}")
-        context.user_data.pop("_em_fluxo_admin", None)
+        context.user_data.pop("_fluxo_excluir_ativo", None)
         return ConversationHandler.END
 
 async def selecionar_regulacao_excluir_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:

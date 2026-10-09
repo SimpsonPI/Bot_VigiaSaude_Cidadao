@@ -162,7 +162,7 @@ async def obter_configuracao(chave: str) -> str | None:
 async def obter_email_suporte() -> str:
     """Obtém o email de suporte configurado."""
     email = await obter_configuracao("email_suporte")
-    return email or "suportevigiasaude@gmail.com"
+    return email or "suporteVigiaSaude Cidadao@gmail.com"
 
 async def buscar_estatisticas_admin_periodo() -> dict:
     """Busca estatísticas com recorte temporal (hoje, 7 dias, totais) e por plano."""

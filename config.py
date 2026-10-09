@@ -34,9 +34,9 @@ PORT = int(os.getenv("PORT", 10000))
 URL_FORMULARIO_PAGES = "https://simpsonpi.github.io/alerta-sus-bot/"
 
 # ==================== CONTATOS E CANAIS OFICIAIS DO ALERTASUS ====================
-EMAIL_SUPORTE = "suportevigiasaude@gmail.com"
-BOT_SUPORTE_USERNAME = "@central_vigiasaude_bot"
-BOT_SUPORTE_LINK = "https://t.me/central_vigiasaude_bot"
+EMAIL_SUPORTE = "suporteVigiaSaude Cidadao@gmail.com"
+BOT_SUPORTE_USERNAME = "@central_VigiaSaude Cidadao_bot"
+BOT_SUPORTE_LINK = "https://t.me/central_VigiaSaude Cidadao_bot"
 
 # ==================== VALIDAÇÃO DAS VARIÁVEIS OBRIGATÓRIAS ====================
 
@@ -74,7 +74,7 @@ MSG_ATENDIMENTO_ENCERRADO = "❌ Atendimento encerrado. Se precisar de algo, ace
 MSG_MODAL_RESPOSTA = "✍️ <b>Modo de Resposta Ativado</b> para o ID: <code>{user_id}</code>\n\nDigite a mensagem que deseja enviar para este usuário agora:"
 
 MSG_BOAS_VINDAS = (
-    "🤖 <b>Central de Atendimento ao Usuário VigiaSaude</b>\n\n"
+    "🤖 <b>Central de Atendimento ao Usuário VigiaSaude Cidadao</b>\n\n"
     "Seja bem-vindo(a)! Como posso ajudá-lo hoje?\n\n"
     "🔹 <b>Menu Principal:</b>\n"
     "• /ajuda - Perguntas Frequentes (FAQ)\n"
@@ -94,7 +94,7 @@ MSG_SUPORTE_INICIAL = (
 )
 
 MSG_ATENDIMENTO_INICIADO = (
-    "🎧 <b>Atendimento Personalizado VigiaSaude</b>\n\n"
+    "🎧 <b>Atendimento Personalizado VigiaSaude Cidadao</b>\n\n"
     "Olá! Escreva abaixo a sua dúvida ou demanda para que nossa equipe receba por aqui:\n\n"
     "✏️ <i>Digite sua mensagem agora...</i>"
 )

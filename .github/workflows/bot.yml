@@ -1,4 +1,4 @@
-name: VigiaSaude Bot
+name: VigiaSaude Cidadao Bot
 
 on:
   workflow_dispatch:

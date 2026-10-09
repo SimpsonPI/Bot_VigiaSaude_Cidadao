@@ -1,8 +1,9 @@
 from dotenv import load_dotenv
-from handler_broadcast import conv_broadcast
-from admin_panel import comando_painel, callback_painel
 load_dotenv()
 
+# Só DEPOIS os outros imports
+from handler_broadcast import conv_broadcast
+from admin_panel import comando_painel, callback_painel
 from handler_consultas import (
     comando_verificar_todas,
     iniciar_verificar_especifico,
@@ -38,7 +39,7 @@ from telegram.ext import (
 from telegram.request import HTTPXRequest
 from telegram.error import TimedOut, NetworkError
 
-from admin_ia_controller import executar_acao_admin
+#from admin_ia_controller import executar_acao_admin
 
 from handler import (
     comando_privacidade,
@@ -204,6 +205,8 @@ def main():
     app.add_handler(CommandHandler("admin", comando_painel))
     app.add_handler(CommandHandler("menu_admin", comando_painel))
     app.add_handler(CallbackQueryHandler(callback_painel, pattern="^painel_"))
+    app.add_handler(CallbackQueryHandler(selecionar_regulacao_callback, pattern="^cancelar_corr$"))
+    app.add_handler(CallbackQueryHandler(selecionar_regulacao_callback, pattern="^finalizar_corr$"))
     app.add_handler(CommandHandler("estatisticas", comando_estatisticas))
     app.add_handler(CommandHandler("ativos", comando_listar_ativos))
     app.add_handler(CommandHandler("detalhes", comando_detalhes))
@@ -218,10 +221,10 @@ def main():
     app.add_handler(CommandHandler("apagar_enquete", comando_apagar_enquete))
 
     # Handler IA do admin
-    app.add_handler(
-        MessageHandler(filters.TEXT & ~filters.COMMAND, executar_acao_admin),
-        group=1,
-    )
+    #app.add_handler(
+        #MessageHandler(filters.TEXT & ~filters.COMMAND, executar_acao_admin),
+        #group=1,
+    #)
 
     app.add_handler(CallbackQueryHandler(start, pattern="^iniciar$"))
 
@@ -263,7 +266,7 @@ def main():
             self.send_response(200)
             self.send_header("Content-Type", "text/plain; charset=utf-8")
             self.end_headers()
-            self.wfile.write(b"VigiaSaude is running!")
+            self.wfile.write(b"VigiaSaude Cidadao is running!")
 
         def do_HEAD(self):
             self.send_response(200)
@@ -279,7 +282,7 @@ def main():
 
     threading.Thread(target=run_http_server, args=(PORT,), daemon=True).start()
 
-    logger.info("Iniciando o bot VigiaSaude Cidadao via polling...")
+    logger.info("Iniciando o bot VigiaSaude Cidadao Cidadao via polling...")
     app.run_polling(drop_pending_updates=True)
 
 

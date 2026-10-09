@@ -437,7 +437,7 @@ async def comando_aviso(update: Update, context: ContextTypes.DEFAULT_TYPE):
             try:
                 await context.bot.send_message(
                     chat_id=chat_id,
-                    text=f"📢 <b>AVISO IMPORTANTE - VigiaSaude</b>\n\n{mensagem_broadcast}",
+                    text=f"📢 <b>AVISO IMPORTANTE - VigiaSaude Cidadao</b>\n\n{mensagem_broadcast}",
                     parse_mode="HTML"
                 )
                 enviados += 1

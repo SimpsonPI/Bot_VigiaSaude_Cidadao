@@ -52,9 +52,10 @@ async def iniciar_cadastro_manual(update: Update, context: ContextTypes.DEFAULT_
         total_regs = res.count if hasattr(res, "count") and res.count is not None else len(res.data or [])
     except Exception as e:
         logger.error(f"Erro ao contar regulações: {e}")
+        
         total_regs = 0
 
-        if total_regs >= LIMITE_MAX:
+    if total_regs >= LIMITE_MAX:
         await update.message.reply_text(
             f"📌 <b>Limite de regulações atingido</b>\n\n"
             f"Você já cadastrou <b>{total_regs}/{LIMITE_MAX}</b> regulações — "

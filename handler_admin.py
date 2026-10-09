@@ -88,7 +88,7 @@ async def comando_conceder_cortesia(update: Update, context: ContextTypes.DEFAUL
                 chat_id=target_id,
                 text=(
                     "🎁 <b>Você recebeu um acesso Cortesia!</b>\n\n"
-                    "Sua conta no <b>VigiaSaude</b> foi atualizada para acesso gratuito e ilimitado. "
+                    "Sua conta no <b>VigiaSaude Cidadao</b> foi atualizada para acesso gratuito e ilimitado. "
                     "Aproveite todos os recursos da plataforma!"
                 ),
                 parse_mode="HTML"
@@ -137,7 +137,7 @@ async def comando_remover_cortesia(update: Update, context: ContextTypes.DEFAULT
         try:
             await context.bot.send_message(
                 chat_id=target_id,
-                text="⚠️ Seu acesso cortesia no <b>VigiaSaude</b> foi encerrado. Utilize o menu /planos para reativar sua conta.",
+                text="⚠️ Seu acesso cortesia no <b>VigiaSaude Cidadao</b> foi encerrado. Utilize o menu /planos para reativar sua conta.",
                 parse_mode="HTML"
             )
         except Exception:
