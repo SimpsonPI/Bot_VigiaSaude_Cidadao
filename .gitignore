@@ -1,7 +1,10 @@
+@"
 .venv/
-__pycache__/
 *.pyc
 .env
+.env.*
+.env.backup
+*.backup
 *.log
 servidor.pid
 debug_main.log
@@ -10,3 +13,5 @@ Bot_VigiaSaude.rar
 *.rar
 .vscode/
 .idea/
+!.env.example
+"@ | Set-Content .gitignore
