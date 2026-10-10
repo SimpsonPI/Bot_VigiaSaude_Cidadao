@@ -334,7 +334,7 @@ async def finalizar_cadastro(update: Update, context: ContextTypes.DEFAULT_TYPE)
         context.user_data.pop("_em_fluxo_admin", None)
         return ConversationHandler.END
 
-    dados_salvar = {
+        dados_salvar = {
         "chat_id": user_id,
         "numero_sus": dados.get("sus"),
         "nome_paciente": dados.get("nome"),
@@ -344,6 +344,44 @@ async def finalizar_cadastro(update: Update, context: ContextTypes.DEFAULT_TYPE)
         "cbo": dados.get("cbo"),
         "procedimento": dados.get("procedimento")
     }
+
+    # 🛡️ Prevenção de duplicata: mesmo chat_id + numero_reg
+    numero_reg_novo = dados_salvar.get("numero_reg")
+    if numero_reg_novo:
+        try:
+            checagem = (
+                supabase.table("AlertaSUS_2.0")
+                .select("id")
+                .eq("chat_id", user_id)
+                .eq("numero_reg", numero_reg_novo)
+                .execute()
+            )
+            if checagem.data:
+                # Apaga a mensagem do termo LGPD pra não deixar botão travado
+                try:
+                    await query.message.delete()
+                except Exception:
+                    try:
+                        await query.edit_message_reply_markup(reply_markup=None)
+                    except Exception:
+                        pass
+
+                await context.bot.send_message(
+                    chat_id=chat_id,
+                    text=(
+                        f"⚠️ <b>Você já tem a regulação <code>{numero_reg_novo}</code> cadastrada.</b>\n\n"
+                        "Não é possível cadastrar a mesma regulação duas vezes.\n\n"
+                        "💡 Se precisar alterar algo, use /corrigir.\n"
+                        "💡 Se quiser remover, use /excluir."
+                    ),
+                    parse_mode="HTML",
+                    reply_markup=TECLADO_MENU,
+                )
+                context.user_data.clear()
+                context.user_data.pop("_em_fluxo_admin", None)
+                return ConversationHandler.END
+        except Exception as e:
+            print(f"DEBUG duplicata: erro na checagem ({e}) — seguindo com insert")
 
     print("DEBUG 1: Salvando no Supabase...")
     sucesso = await salvar_regulacao(dados_salvar)
