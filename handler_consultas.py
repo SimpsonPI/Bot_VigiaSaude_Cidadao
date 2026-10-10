@@ -175,11 +175,11 @@ async def comando_verificar_todas(update: Update, context: ContextTypes.DEFAULT_
         else:
             await update.message.reply_text(
                 "⏳ <b>Limite diário de verificações completas atingido!</b>\n\n"
-                "Você já usou suas <b>2 verificações completas</b> de hoje.\n\n"
+                "Você já usou suas <b>3 verificações completas</b> de hoje.\n\n"
                 "💡 <i>Alternativas:</i>\n"
                 "• Use <b>/verificar_especifico</b> para checar 1 regulação\n"
                 "• O bot continua monitorando automaticamente a cada 6h 🕐\n"
-                "• Volte amanhã para mais 2 verificações completas",
+                "• Volte amanhã para mais 3 verificações completas",
                 parse_mode="HTML"
             )
         return
@@ -244,7 +244,7 @@ async def comando_verificar_todas(update: Update, context: ContextTypes.DEFAULT_
                 # Contador final (usa o valor já calculado no início, sem re-consultar)
         restantes_agora = max(0, restantes - 1)
         await msg_alvo.reply_text(
-            f"<i>📊 Verificações completas restantes hoje: <b>{restantes_agora}/2</b></i>",
+            f"<i>📊 Verificações completas restantes hoje: <b>{restantes_agora}/3</b></i>",
             parse_mode="HTML"
         )
     else:
@@ -307,22 +307,34 @@ async def iniciar_verificar_especifico(update: Update, context: ContextTypes.DEF
         restantes_esp = restantes_reais(str(user_id), "especifico")
 
         # 5. Menu com legenda colorida
+                # 5. Menu com legenda colorida
+        from verificacao_limite import _eh_admin as _check_admin
+        eh_admin = _check_admin(str(user_id))
+
+        if eh_admin:
+            rodape = "👑 <b>Admin</b> · sem limite\n🕐 <i>Monitoramento automático a cada 6h</i>"
+        else:
+            rodape = f"📊 <b>Específicas hoje:</b> {restantes_esp}/10\n🕐 <i>Monitoramento automático a cada 6h</i>"
+
         msg = (
-            "🔍 <b>Selecione qual regulação deseja verificar:</b>\n"
+            "🔍 <b>Selecione qual regulação verificar</b>\n"
             "<i>Ou digite o ID abaixo:</i>\n\n"
 
-                        "🎨 <b>ENTENDA AS CORES:</b>\n"
-            "🟢 <b>Agendada</b> — Compareça à UBS para assinatura e carimbo de confirmação.\n"
-            "🟡 <b>Em fila</b> — Você está na fila de espera. Continue monitorando.\n"
-            "🔵 <b>Vencida</b> — Revalidação não feita no prazo de 60 dias ou data do procedimento ultrapassada. Renove na UBS.\n"
-            "🔴 <b>Cancelada</b> — Cancelada por você ou pelo portal FMS. Procure a UBS para justificativa.\n"
-            "🟣 <b>Revalidada</b> — Revalidação feita antes do prazo de 60 dias.\n"
-            "⚪ <b>Sem status</b> — Portal FMS ainda não retornou status.\n\n"
+            "━━━━━━━━━━━━━━━\n"
+            "🎨 <b>LEGENDA DE STATUS</b>\n"
+            "━━━━━━━━━━━━━━━\n\n"
 
-            "💡 <i>Fique de olho nas 🟡 <b>Em fila</b> — são as que mais mudam de status!</i>\n\n"
+            "🟢 <b>Agendada</b> · vá à UBS assinar e carimbar\n"
+            "🟡 <b>Em fila</b> · aguarde, monitorando\n"
+            "🔵 <b>Vencida</b> · revalidação atrasada\n"
+            "🔴 <b>Cancelada</b> · procure a UBS\n"
+            "🟣 <b>Revalidar</b> · procure a UBS antes dos 60 dias\n"
+            "⚪ <b>Sem status</b> · portal não informou\n\n"
 
-            f"📊 <b>Verificações específicas hoje:</b> {restantes_esp}/5\n"
-            f"<i>O bot também monitora automaticamente a cada 6h 🕐</i>"
+            "💡 <i>Fique de olho nas 🟡 Em fila!</i>\n\n"
+
+            "━━━━━━━━━━━━━━━\n"
+            f"{rodape}"
         )
 
         # 6. Substitui o carregamento pelo menu final
@@ -383,7 +395,7 @@ async def processar_verificar_especifico(update: Update, context: ContextTypes.D
             else:
                 await msg_alvo.reply_text(
                     "⏳ <b>Limite diário de verificações específicas atingido!</b>\n\n"
-                    "Você já usou suas <b>5 verificações específicas</b> de hoje.\n\n"
+                    "Você já usou suas <b>10 verificações específicas</b> de hoje.\n\n"
                     "💡 <i>Aguarde até meia-noite para novas verificações.</i>",
                     parse_mode="HTML"
                 )
@@ -431,7 +443,7 @@ async def processar_verificar_especifico(update: Update, context: ContextTypes.D
         # Contador final
         restantes_agora = max(0, restantes - 1)
         await msg_alvo.reply_text(
-            f"<i>📊 Verificações específicas restantes hoje: <b>{restantes_agora}/5</b></i>",
+            f"<i>📊 Verificações específicas restantes hoje: <b>{restantes_agora}/10</b></i>",
             parse_mode="HTML"
         )
 

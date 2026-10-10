@@ -5,8 +5,8 @@ from datetime import datetime, timezone, timedelta
 logger = logging.getLogger(__name__)
 
 # Limites diários
-LIMITE_VERIFICAR_TODAS = 2
-LIMITE_VERIFICAR_ESPECIFICO = 5
+LIMITE_VERIFICAR_TODAS = 3
+LIMITE_VERIFICAR_ESPECIFICO = 10
 
 # Intervalo mínimo entre 2 consultas do mesmo usuário (segundos)
 INTERVALO_MINIMO = 60
