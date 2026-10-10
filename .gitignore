@@ -14,3 +14,4 @@ Bot_VigiaSaude Cidadao.rar
 .idea/
 !.env.example
 enquetes_data.json
+_backup_fix_strings/
