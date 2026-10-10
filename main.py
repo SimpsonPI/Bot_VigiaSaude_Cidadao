@@ -39,7 +39,7 @@ from telegram.ext import (
 from telegram.request import HTTPXRequest
 from telegram.error import TimedOut, NetworkError
 
-#from admin_ia_controller import executar_acao_admin
+from admin_ia_controller import executar_acao_admin
 
 from handler import (
     comando_privacidade,
@@ -221,10 +221,10 @@ def main():
     app.add_handler(CommandHandler("apagar_enquete", comando_apagar_enquete))
 
     # Handler IA do admin
-    #app.add_handler(
-        #MessageHandler(filters.TEXT & ~filters.COMMAND, executar_acao_admin),
-        #group=1,
-    #)
+    app.add_handler(
+        MessageHandler(filters.TEXT & ~filters.COMMAND, executar_acao_admin),
+        group=1,
+    )
 
     app.add_handler(CallbackQueryHandler(start, pattern="^iniciar$"))
 
