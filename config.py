@@ -34,9 +34,9 @@ PORT = int(os.getenv("PORT", 10000))
 URL_FORMULARIO_PAGES = "https://simpsonpi.github.io/alerta-sus-bot/"
 
 # ==================== CONTATOS E CANAIS OFICIAIS DO ALERTASUS ====================
-EMAIL_SUPORTE = "suporteVigiaSaude Cidadao@gmail.com"
-BOT_SUPORTE_USERNAME = "@central_VigiaSaude Cidadao_bot"
-BOT_SUPORTE_LINK = "https://t.me/central_VigiaSaude Cidadao_bot"
+EMAIL_SUPORTE = "suportevigiasaude@gmail.com"
+BOT_SUPORTE_USERNAME = "@central_vigiasaude_bot"
+BOT_SUPORTE_LINK = "https://t.me/central_vigiasaude_bot"
 
 # ==================== VALIDAÇÃO DAS VARIÁVEIS OBRIGATÓRIAS ====================
 

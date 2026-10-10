@@ -219,8 +219,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
             mensagem += (
                 f"\n\n📊 <b>Seus limites de hoje:</b>\n"
-                f"• <b>Verificar todas:</b> {rest_todas}/2\n"
-                f"• <b>Verificar específico:</b> {rest_esp}/5\n\n"
+                f"• <b>Verificar todas:</b> {rest_todas}/3\n"
+                f"• <b>Verificar específico:</b> {rest_esp}/10\n\n"
                 f"<i>🕐 O bot monitora suas regulações automaticamente "
                 f"a cada 6 horas, mesmo sem você pedir!</i>"
             )
@@ -298,7 +298,7 @@ async def obter_menu_planos(user_id: int) -> InlineKeyboardMarkup:
         ]
     )
     keyboard.append([
-    InlineKeyboardButton("🤖 Central de Atendimento", url="https://t.me/central_VigiaSaude Cidadao_bot")
+    InlineKeyboardButton("🤖 Central de Atendimento", url="https://t.me/central_vigiasaude_bot")
 ])
     return InlineKeyboardMarkup(keyboard)
 
@@ -423,8 +423,8 @@ async def comando_suporte(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "🤖 <b>Central de Atendimento VigiaSaude Cidadao</b>\n\n"
         "Como podemos ajudar você hoje?\n\n"
         "<b>📌 Canais de Atendimento:</b>\n"
-        "• 🤖 <b>Bot de Atendimento:</b> @central_VigiaSaude Cidadao_bot\n"
-        "• 📧 <b>Email:</b> suporteVigiaSaude Cidadao@gmail.com\n\n"
+        "• 🤖 <b>Bot de Atendimento:</b> @central_vigiasaude_bot\n"
+        "• 📧 <b>Email:</b> suportevigiasaude@gmail.com\n\n"
         "<b>❓ Perguntas Frequentes (FAQs):</b>\n"
         "1️⃣ Como cadastrar uma nova regulação?\n"
         "2️⃣ Como verificar o status das regulações?\n"
@@ -1142,7 +1142,7 @@ async def mostrar_email_suporte(update: Update, context: ContextTypes.DEFAULT_TY
 
     await query.message.reply_text(
         "📧 <b>Email de Suporte</b>\n\n"
-        "<code>suporteVigiaSaude Cidadao@gmail.com</code>\n\n"
+        "<code>suportevigiasaude@gmail.com</code>\n\n"
         "Toque no email acima para copiar.",
         parse_mode="HTML",
     )

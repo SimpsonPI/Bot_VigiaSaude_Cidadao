@@ -106,7 +106,7 @@ def _texto_sistema() -> str:
         "• <code>/suporte</code> — Central de Atendimento\n\n"
         "<b>📌 Informações:</b>\n"
         f"• Seu ID: <code>{ADMIN_ID}</code>\n"
-        "• Bot: @VigiaSaude Cidadao_bot"
+        "• Bot: @vigiasaude_cidadao_bot"
     )
 
 

@@ -25,7 +25,7 @@ CABECALHO = "📢 <b>VIGIASAÚDE — COMUNICADO OFICIAL</b>\n\n"
 RODAPE = (
     "\n\n━━━━━━━━━━━━━━━━━━━━━\n"
     "🏥 <i>Ferramenta independente de monitoramento</i>\n"
-    "🤖 Saiba mais: <b>@VigiaSaude Cidadao_bot</b>"
+    "🤖 Saiba mais: <b>@vigiasaude_cidadao_bot</b>"
 )
 
 # ==========================================
