@@ -4,7 +4,7 @@ import re
 from html import escape
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.ext import ContextTypes, ConversationHandler
-
+from rate_limiter import consultar_com_limite
 from database import supabase
 from scraper import consultar_status_fms
 
@@ -224,7 +224,7 @@ async def comando_verificar_todas(update: Update, context: ContextTypes.DEFAULT_
         if not num_reg:
             continue
         try:
-            resultado = await consultar_status_fms(num_reg)
+            resultado = await consultar_com_limite(num_reg)
         except Exception as e:
             logger.error(f"Erro FMS {num_reg}: {e}")
             resultado = {"sucesso": False}
@@ -401,7 +401,7 @@ async def processar_verificar_especifico(update: Update, context: ContextTypes.D
         await msg_alvo.reply_text(msg_carregando, parse_mode="HTML")
 
         # Consulta a FMS
-        resultado = await consultar_status_fms(num_reg)
+        resultado = await consultar_com_limite(num_reg)
 
         # Busca dados complementares no Supabase
         res_db = (

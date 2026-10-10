@@ -42,13 +42,25 @@ def _nome_coluna(tipo: str) -> str:
 
 
 def pode_verificar(chat_id: str, tipo: str) -> tuple[bool, str, int]:
-    """Verifica se o usuário pode executar uma verificação."""
     from database import supabase
 
     if _eh_admin(chat_id):
         return (True, "", 999)
 
+    # Camada 2 — anti-rajada (só para usuários comuns)
+    pode_jc, motivo_jc = pode_verificar_janela_curta(chat_id, tipo)
+    if not pode_jc:
+        return (False, motivo_jc, 0)
+
     hoje = _hoje_brasilia()
+
+    # Camada 2 — anti-rajada em memória (antes de bater no banco)
+    pode_jc, motivo_jc = pode_verificar_janela_curta(chat_id, tipo)
+    if not pode_jc:
+        return (False, motivo_jc, 0)
+
+    hoje = _hoje_brasilia()
+
     limite = LIMITE_VERIFICAR_TODAS if tipo == "todas" else LIMITE_VERIFICAR_ESPECIFICO
     coluna = _nome_coluna(tipo)
 
@@ -90,7 +102,9 @@ def pode_verificar(chat_id: str, tipo: str) -> tuple[bool, str, int]:
 
 def registrar_verificacao(chat_id: str, tipo: str):
     """Incrementa o contador de verificações do usuário."""
+    registrar_janela_curta(chat_id, tipo)
     from database import supabase
+    # ... resto igual ...
     hoje = _hoje_brasilia()
     agora = datetime.now(timezone.utc).isoformat()
 
@@ -149,3 +163,50 @@ def restantes_reais(chat_id: str, tipo: str) -> int:
     except Exception as e:
         logger.error(f"Erro ao contar restantes: {e}")
         return limite
+
+# ═══════════════════════════════════════════════
+# CAMADA 2 — ANTI-RAJADA (janela curta por usuário)
+# ═══════════════════════════════════════════════
+from collections import defaultdict, deque
+import time as _time
+
+_JANELA_CURTA = defaultdict(deque)
+
+LIMITES_JANELA_CURTA = {
+    "todas":      {"max": 2, "janela_seg": 60},
+    "especifico": {"max": 3, "janela_seg": 60},
+}
+LIMITE_JANELA_GERAL = {"max": 5, "janela_seg": 60}
+
+
+def _limpar_janela(dq: deque, agora: float, janela_seg: int):
+    while dq and agora - dq[0][0] > janela_seg:
+        dq.popleft()
+
+
+def pode_verificar_janela_curta(chat_id: str, tipo: str) -> tuple[bool, str]:
+    if _eh_admin(chat_id):
+        return (True, "")
+
+    agora = _time.time()
+    dq = _JANELA_CURTA[chat_id]
+
+    _limpar_janela(dq, agora, LIMITE_JANELA_GERAL["janela_seg"])
+    if len(dq) >= LIMITE_JANELA_GERAL["max"]:
+        espera = int(LIMITE_JANELA_GERAL["janela_seg"] - (agora - dq[0][0])) + 1
+        return (False, f"intervalo:{espera}")
+
+    cfg = LIMITES_JANELA_CURTA.get(tipo)
+    if cfg:
+        recentes = [t for t, tp in dq if tp == tipo and agora - t <= cfg["janela_seg"]]
+        if len(recentes) >= cfg["max"]:
+            espera = int(cfg["janela_seg"] - (agora - recentes[0])) + 1
+            return (False, f"intervalo:{espera}")
+
+    return (True, "")
+
+
+def registrar_janela_curta(chat_id: str, tipo: str):
+    if _eh_admin(chat_id):
+        return
+    _JANELA_CURTA[chat_id].append((_time.time(), tipo))
