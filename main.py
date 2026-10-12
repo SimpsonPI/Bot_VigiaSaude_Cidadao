@@ -62,7 +62,6 @@ from handler import (
     faq_consultar,
     faq_id,
     faq_alterar,
-    faq_planos,
     faq_governo,
 )
 
@@ -233,7 +232,6 @@ def main():
     app.add_handler(CallbackQueryHandler(faq_consultar, pattern="^faq_consultar$"))
     app.add_handler(CallbackQueryHandler(faq_id, pattern="^faq_id$"))
     app.add_handler(CallbackQueryHandler(faq_alterar, pattern="^faq_alterar$"))
-    app.add_handler(CallbackQueryHandler(faq_planos, pattern="^faq_planos$"))
     app.add_handler(CallbackQueryHandler(faq_governo, pattern="^faq_governo$"))
     app.add_handler(CallbackQueryHandler(iniciar_atendimento_20, pattern="^iniciar_atendimento_20$"))
     app.add_handler(CallbackQueryHandler(cancelar_suporte, pattern="^fechar_menu$"))

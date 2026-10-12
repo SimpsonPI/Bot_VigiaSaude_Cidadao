@@ -26,7 +26,6 @@ async def menu_suporte(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "2️⃣ Como verificar o status das regulações?\n"
         "3️⃣ Onde encontrar o Cartão SUS ou ID?\n"
         "4️⃣ Como corrigir dados?\n"
-        "5️⃣ Planos e Assinaturas\n"
         "6️⃣ O VigiaSaude Cidadao tem vínculo com o governo?\n\n"
         "Selecione uma opção abaixo:"
     )
@@ -45,7 +44,6 @@ async def menu_suporte(update: Update, context: ContextTypes.DEFAULT_TYPE):
             InlineKeyboardButton("4️⃣ Alterar Dados", callback_data="faq_alterar")
         ],
         [
-            InlineKeyboardButton("5️⃣ Planos", callback_data="faq_planos"),
             InlineKeyboardButton("6️⃣ Vínculo Governo", callback_data="faq_governo")
         ],
         [InlineKeyboardButton("⬅️ Voltar ao Menu Principal", callback_data="iniciar")]
@@ -85,10 +83,6 @@ async def exibir_resposta_faq(update: Update, context: ContextTypes.DEFAULT_TYPE
         "faq_alterar": (
             "✏️ <b>Como corrigir ou alterar dados?</b>\n\n"
             "• Para alterar informações de uma regulação já cadastrada, utilize o comando <b>/corrigir</b> e selecione o registro desejado."
-        ),
-        "faq_planos": (
-            "💳 <b>Planos e Renovação de Assinatura</b>\n\n"
-            "• Para verificar seus planos ativos, renovar ou fazer um upgrade, acesse o comando <b>/planos</b> no menu principal."
         ),
         "faq_governo": (
             "⚠️ <b>O VigiaSaude Cidadao tem vínculo com o governo?</b>\n\n"

@@ -286,7 +286,6 @@ async def obter_menu_planos(user_id: int) -> InlineKeyboardMarkup:
     keyboard.append(
         [
             InlineKeyboardButton(
-                "⭐ Plano Trimestral (R$ 9,99)", callback_data="plano_trimestral"
             )
         ]
     )
@@ -329,7 +328,6 @@ def verificar_plano_ativo(user_id: int) -> tuple[bool, dict]:
 async def enviar_alerta_plano_expirado(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Envia mensagem acolhedora informando que o plano expirou."""
     teclado = InlineKeyboardMarkup([
-        [InlineKeyboardButton("💳 Ver Planos e Renovar", callback_data="planos")],
         [InlineKeyboardButton("❓ Tirar dúvidas", callback_data="atendimento_faq")],
         [InlineKeyboardButton("👤 Falar com Atendente", callback_data="atendimento_humanizado")],
     ])
@@ -350,7 +348,6 @@ async def enviar_alerta_plano_expirado(update: Update, context: ContextTypes.DEF
 
         "🎁 <i>Renovação em menos de 1 minuto, direto pelo Pix.</i>\n\n"
 
-        "Toque em <b>\"Ver Planos e Renovar\"</b> abaixo para continuar cuidando da sua saúde. 💙"
     )
 
     if update.callback_query:
@@ -430,7 +427,6 @@ async def comando_suporte(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "2️⃣ Como verificar o status das regulações?\n"
         "3️⃣ Onde encontrar o Cartão SUS ou ID?\n"
         "4️⃣ Como corrigir dados?\n"
-        "5️⃣ Planos e Assinaturas\n"
         "6️⃣ O VigiaSaude Cidadao tem vínculo com o governo?\n\n"
         "Selecione uma opção abaixo:"
     )
@@ -450,8 +446,7 @@ async def comando_suporte(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 InlineKeyboardButton("4️⃣ Alterar Dados", callback_data="faq_alterar"),
             ],
             [
-                InlineKeyboardButton("5️⃣ Planos", callback_data="faq_planos"),
-                InlineKeyboardButton(
+                    InlineKeyboardButton(
                     "6️⃣ Vínculo Governo", callback_data="faq_governo"
                 ),
             ],
@@ -729,7 +724,6 @@ async def executar_varredura_automatica(context: ContextTypes.DEFAULT_TYPE):
             try:
                 msg = _montar_msg_teaser(mudancas)
                 teclado = InlineKeyboardMarkup([
-                    [InlineKeyboardButton("💳 Ver Planos e Renovar", callback_data="planos")],
                     [InlineKeyboardButton("🔕 Não quero receber mais", callback_data="optout_teaser")],
                 ])
                 await context.bot.send_message(
@@ -835,7 +829,6 @@ async def configurar_menu_comandos(app):
         BotCommand("verificar_especifico", "🎯 Verificar regulação específica"),
         BotCommand("cadastrar_nova", "➕ Cadastrar nova regulação"),
         BotCommand("corrigir", "✏️ Corrigir dados de regulação"),
-        BotCommand("planos", "💳 Ver planos e assinaturas"),
         BotCommand("excluir", "🗑️ Excluir uma regulação"),
         BotCommand("privacidade", "🔒 Política de privacidade e LGPD"),
         BotCommand("suporte", "🤖 Central de Atendimento"),
@@ -1121,20 +1114,6 @@ async def faq_alterar(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.edit_message_text(texto, parse_mode="HTML", reply_markup=teclado)
 
 
-async def faq_planos(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Resposta para Planos e Assinaturas."""
-    query = update.callback_query
-    await query.answer()
-    texto = (
-        "💳 <b>Planos e Assinaturas</b>\n\n"
-        "• Para verificar seus planos ativos, renovar ou fazer upgrade, acesse o comando <b>/planos</b> no menu principal."
-    )
-    teclado = InlineKeyboardMarkup(
-        [[InlineKeyboardButton("⬅️ Voltar", callback_data="suporte")]]
-    )
-    await query.edit_message_text(texto, parse_mode="HTML", reply_markup=teclado)
-
-
 async def mostrar_email_suporte(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Exibe o email de suporte como texto copiável."""
     query = update.callback_query
@@ -1207,72 +1186,8 @@ async def callback_optout_teaser(update: Update, context: ContextTypes.DEFAULT_T
 # ==========================================
 
 async def enviar_oferta_primeira_regulacao(update: Update, context: ContextTypes.DEFAULT_TYPE, chat_id: str):
-    """
-    Envia oferta de planos APENAS se:
-    - For a 1ª regulação do usuário
-    - Usuário NÃO tiver plano pago ativo
-    """
-    try:
-        # 1. Conta quantas regulações o usuário tem
-        res_regs = supabase.table("AlertaSUS_2.0").select(
-            "id", count="exact"
-        ).eq("chat_id", str(chat_id)).execute()
-
-        total_regs = res_regs.count if hasattr(res_regs, "count") else len(res_regs.data or [])
-
-        # Só dispara se for EXATAMENTE a 1ª regulação
-        if total_regs != 1:
-            logger.info(f"⏭️ Oferta ignorada (usuário tem {total_regs} regulações, não é a 1ª)")
-            return
-
-        # 2. Confirma que NÃO tem plano pago ativo
-        res = supabase.table("assinaturas").select(
-            "tipo_plano, status"
-        ).eq("chat_id", str(chat_id)).execute()
-
-        if res.data:
-            plano = res.data[0]
-            tipo = str(plano.get("tipo_plano") or "").lower()
-            status = str(plano.get("status") or "").lower()
-
-            if status in ("ativo", "active", "ativa") and tipo in (
-                "trimestral", "semestral", "anual",
-                "pro_trimestral", "pro_semestral", "pro_anual", "cortesia",
-            ):
-                logger.info(f"⏭️ Oferta ignorada (já tem plano ativo): {chat_id}")
-                return
-
-        # 3. Monta a mensagem
-        texto = (
-            "🎉 <b>Primeira regulação cadastrada!</b>\n\n"
-            "Agora você vai receber alertas automáticos no Telegram "
-            "sempre que o status mudar.\n\n"
-            "💡 <i>Você está na degustação de 7 dias (até 2 regulações).</i>\n\n"
-            "<b>Quer monitorar mais regulações?</b>\n"
-            "⭐ Trimestral (R$ 9,99) → até 5 regulações / 3 meses\n"
-            "🚀 Semestral (R$ 14,99) → até 9 regulações / 6 meses"
-        )
-
-        teclado = InlineKeyboardMarkup([
-            [InlineKeyboardButton("⭐ Ver Planos Disponíveis", callback_data="planos")],
-        ])
-
-        # 4. Envia
-        await context.bot.send_message(
-            chat_id=chat_id,
-            text=texto,
-            parse_mode="HTML",
-            reply_markup=teclado,
-        )
-
-        logger.info(f"📣 Oferta pós-1ª regulação enviada para {chat_id}")
-
-    except Exception as e:
-        logger.error(f"Erro ao enviar oferta pós-1ª regulação: {e}")
-
-        # ==========================================
-# MARKETING: LIMITE DE REGULAÇÕES ATINGIDO
-# ==========================================
+    """Institucional: sem planos nem cobrancas."""
+    return
 
 def _obter_limite_plano(info: dict) -> int:
     """Obtém o limite de regulações do plano do usuário."""
@@ -1294,174 +1209,9 @@ async def enviar_oferta_limite_atingido(
     total: int,
     limite: int,
 ):
-    """Envia oferta de upgrade quando o usuário atinge o limite do plano."""
-    try:
-        texto = (
-            f"⚠️ <b>Você atingiu o limite do seu plano atual!</b>\n\n"
-            f"📊 <b>Regulações monitoradas:</b> {total}/{limite}\n\n"
-            "Para cadastrar mais regulações, escolha um plano Pro:\n\n"
-            "⭐ <b>Trimestral (R$ 9,99)</b>\n"
-            "   Até 5 regulações / 3 meses\n\n"
-            "🚀 <b>Semestral (R$ 14,99)</b>\n"
-            "   Até 9 regulações / 6 meses\n\n"
-            "💠 <i>Pagamento via Pix, liberação imediata.</i>\n\n"
-            "👇 Escolha seu plano abaixo:"
-        )
-
-        teclado = InlineKeyboardMarkup([
-            [InlineKeyboardButton("⭐ Ver Planos e Fazer Upgrade", callback_data="planos")],
-            [InlineKeyboardButton("👤 Falar com Atendente", callback_data="atendimento_humanizado")],
-        ])
-
-        if update.callback_query:
-            await update.callback_query.message.reply_text(
-                texto, parse_mode="HTML", reply_markup=teclado
-            )
-        elif update.message:
-            await update.message.reply_text(
-                texto, parse_mode="HTML", reply_markup=teclado
-            )
-
-        logger.info(f"📣 Oferta de limite atingido enviada ({total}/{limite})")
-
-    except Exception as e:
-        logger.error(f"Erro ao enviar oferta de limite: {e}")
-
-        # ==========================================
-# MARKETING: EXPIRAÇÃO DA DEGUSTAÇÃO
-# ==========================================
+    """Institucional: sem planos nem cobrancas."""
+    return
 
 async def enviar_alerta_expiracao(context, chat_id: str, tipo_plano: str, dias: int, data_venc: str):
-    """Envia alerta de expiração escalonado (3d, 1d, 0d)."""
-    from datetime import datetime
-
-    try:
-        venc_dt = datetime.fromisoformat(str(data_venc).replace("Z", "+00:00"))
-        venc_str = venc_dt.strftime("%d/%m/%Y")
-    except Exception:
-        venc_str = data_venc
-
-    if dias == 3:
-        titulo = "📅 <b>Faltam 3 dias!</b>"
-        texto_corpo = (
-            f"Sua degustação do VigiaSaúde termina em <b>3 dias</b> "
-            f"(<b>{venc_str}</b>).\n\n"
-            "Após esse prazo, você <b>perde o monitoramento</b> das suas regulações. "
-            "Para continuar, assine um plano Pro:"
-        )
-        urgencia = ""
-    elif dias == 1:
-        titulo = "⏰ <b>Falta apenas 1 dia!</b>"
-        texto_corpo = (
-            f"Sua degustação termina <b>amanhã</b> (<b>{venc_str}</b>).\n\n"
-            "Não perca o monitoramento das suas regulações. Assine agora:"
-        )
-        urgencia = "\n🔥 <i>Recomendamos garantir hoje para não esquecer!</i>"
-    else:  # 0 dias
-        titulo = "🚨 <b>Sua degustação expira HOJE!</b>"
-        texto_corpo = (
-            f"Última chance: sua degustação acaba <b>hoje</b> (<b>{venc_str}</b>).\n\n"
-            "Após o vencimento, você não receberá mais alertas automáticos. "
-            "Garanta seu acesso agora:"
-        )
-        urgencia = "\n🔥 <i>Não deixe para depois — leva menos de 1 minuto!</i>"
-
-    texto = (
-        f"{titulo}\n\n"
-        f"{texto_corpo}\n\n"
-        "⭐ <b>Trimestral (R$ 9,99)</b> → 5 regulações / 3 meses\n"
-        "🚀 <b>Semestral (R$ 14,99)</b> → 9 regulações / 6 meses\n"
-        f"{urgencia}\n\n"
-        "👇 Escolha seu plano:"
-    )
-
-    teclado = InlineKeyboardMarkup([
-        [InlineKeyboardButton("⭐ Ver Planos e Renovar", callback_data="planos")],
-        [InlineKeyboardButton("👤 Falar com Atendente", callback_data="atendimento_humanizado")],
-    ])
-
-    try:
-        await context.bot.send_message(
-            chat_id=chat_id,
-            text=texto,
-            parse_mode="HTML",
-            reply_markup=teclado,
-        )
-        logger.info(f"📣 Alerta de expiração ({dias}d) enviado para {chat_id}")
-    except Exception as e:
-        logger.error(f"Erro ao enviar alerta de expiração para {chat_id}: {e}")
-
-# --- EXPORTAÇÃO DE SÍMBOLOS DO HANDLER ATUALIZADA ---
-__all__ = [
-    "CONSULTAR_ID",
-    "SELECIONAR_REGULACAO",
-    "SELECIONAR_CAMPO",
-    "AGUARDAR_NOVO_VALOR",
-    "SELECIONAR_REGULACAO_EXCLUIR",
-    "CONFIRMAR_EXCLUSAO",
-    "ETAPA_SUS",
-    "ETAPA_NOME",
-    "ETAPA_CELULAR",
-    "ETAPA_NASCIMENTO",
-    "ETAPA_REGULACAO",
-    "ETAPA_CBO",
-    "ETAPA_PROCEDIMENTO",
-    "ETAPA_LGPD",
-    "start",
-    "comando_ajuda",
-    "comando_suporte",
-    "callback_ajuda",
-    "voltar_ajuda",
-    "faq_o_que_e",
-    "faq_rastrear",
-    "faq_seguranca",
-    "faq_corrigir",
-    "comando_privacidade",
-    "callback_faq_suporte",
-    "callback_privacidade_voltar",
-    "callback_optout_teaser",
-    "cancelar_operacao",
-    "configurar_menu_comandos",
-    "executar_varredura_automatica",
-    "comando_verificar_todas",
-    "iniciar_verificar_especifico",
-    "processar_verificar_especifico",
-    "iniciar_cadastro_manual",
-    "receber_sus",
-    "receber_nome",
-    "receber_celular",
-    "receber_nascimento",
-    "receber_regulacao",
-    "receber_cbo",
-    "receber_procedimento",
-    "finalizar_cadastro",
-    "iniciar_corrigir",
-    "selecionar_regulacao_callback",
-    "selecionar_campo_callback",
-    "salvar_novo_valor",
-    "cancelar_corrigir",
-    "iniciar_excluir",
-    "selecionar_regulacao_excluir_callback",
-    "confirmar_exclusao_callback",
-    "cancelar_excluir",
-    "conv_consulta_especifica",
-    "conv_cadastro",
-    "conv_corrigir",
-    "conv_excluir",
-    "obter_menu_principal",
-    "obter_menu_planos",
-    "comando_atendimento",
-    "comando_faq",
-    "voltar_menu_atendimento",
-    "callback_email_suporte",
-    "conv_atendimento_humanizado",
-    "AGUARDANDO_MENSAGEM_CHAMADO",
-    "comando_suporte",
-    "faq_cadastrar",
-    "faq_consultar",
-    "faq_id",
-    "faq_alterar",
-    "faq_planos",
-    "faq_governo",
-    "mostrar_email_suporte",
-]
+    """Institucional: sem planos nem cobrancas."""
+    return

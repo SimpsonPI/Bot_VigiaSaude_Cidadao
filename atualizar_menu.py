@@ -20,7 +20,6 @@ async def atualizar():
         BotCommand("verificar_especifico", "🎯 Verificar regulação específica"),
         BotCommand("cadastrar_nova", "➕ Cadastrar nova regulação"),
         BotCommand("corrigir", "✏️ Corrigir dados de regulação"),
-        BotCommand("planos", "💳 Ver planos e assinaturas"),
         BotCommand("excluir", "🗑️ Excluir uma regulação"),
         BotCommand("privacidade", "🔒 Política de privacidade e LGPD"),
         BotCommand("suporte", "🤖 Central de Atendimento"),

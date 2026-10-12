@@ -79,7 +79,6 @@ MSG_BOAS_VINDAS = (
     "🔹 <b>Menu Principal:</b>\n"
     "• /ajuda - Perguntas Frequentes (FAQ)\n"
     "• /suporte - Falar com a equipe de suporte\n"
-    "• /planos - Gerenciar planos e assinatura\n"
     "• /privacidade - Política de privacidade\n\n"
     f"📧 <b>E-mail Oficial:</b> {EMAIL_SUPORTE}\n"
     f"🤖 <b>Bot de Atendimento:</b> {BOT_SUPORTE_USERNAME}"

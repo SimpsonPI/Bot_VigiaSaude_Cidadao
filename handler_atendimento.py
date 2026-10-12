@@ -75,7 +75,6 @@ async def iniciar_faq(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "2️⃣ Como consultar minhas regulações?\n"
             "3️⃣ Onde encontrar o Cartão SUS ou ID?\n"
             "4️⃣ Como alterar meus dados?\n"
-            "5️⃣ Planos e Assinaturas\n"
             "6️⃣ O VigiaSaude Cidadao tem vínculo com o governo?"
         )
         
@@ -89,7 +88,6 @@ async def iniciar_faq(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 InlineKeyboardButton("4️⃣ Alterar Dados", callback_data="faq_alterar")
             ],
             [
-                InlineKeyboardButton("5️⃣ Planos", callback_data="faq_planos"),
                 InlineKeyboardButton("6️⃣ Vínculo Governo", callback_data="faq_governo")
             ],
             [InlineKeyboardButton("👤 Falar com Humano", callback_data="atendimento_humanizado")],
@@ -114,7 +112,6 @@ async def iniciar_faq(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 InlineKeyboardButton("4️⃣ Alterar Dados", callback_data="faq_alterar")
             ],
             [
-                InlineKeyboardButton("5️⃣ Planos", callback_data="faq_planos"),
                 InlineKeyboardButton("6️⃣ Vínculo Governo", callback_data="faq_governo")
             ],
             [InlineKeyboardButton("👤 Falar com Humano", callback_data="atendimento_humanizado")],

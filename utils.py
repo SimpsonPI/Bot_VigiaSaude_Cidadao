@@ -36,7 +36,7 @@ TECLADO_MENU = ReplyKeyboardMarkup(
     [
         ["📋 Verificar Todas", "🔍 Verificar Específico"],
         ["➕ Cadastrar Nova", "✏️ Corrigir ID"],
-        ["🗑️ Excluir Regulação", "💎 Planos"],
+        
         ["ℹ️ Ajuda", "🚀 Início"],
         ["📄 Privacidade"]
     ],
@@ -161,7 +161,7 @@ async def verificar_se_e_menu_e_executar(update, context) -> bool:
         "📋 Verificar Todas", "🔍 Verificar Específico", 
         "➕ Cadastrar Nova", "✏️ Corrigir ID", 
         "🗑️ Excluir Regulação", "ℹ️ Ajuda", 
-        "🚀 Início", "📄 Privacidade", "💎 Planos", 
+         
         "🚫 Cancelar Operação"
     ]
     if texto in opcoes:

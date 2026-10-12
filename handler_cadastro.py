@@ -283,7 +283,7 @@ async def receber_cbo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
         context.user_data["cbo"] = ""
         await update.message.reply_text(
             "⏭️ <b>Especialidade pulada.</b>\n\n"
-            "Agora informe a <b>descrição do Procedimento/Exame</b>:\n"
+            "Agora informe a <b>descrição do Procedimento/Exame / Consulta</b>:\n"
             "<i>(ex: ULTRASSONOGRAFIA, CONSULTA CARDIOLOGIA)</i>",
             parse_mode="HTML",
         )
@@ -293,8 +293,8 @@ async def receber_cbo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
     
     await update.message.reply_text(
         f"✅ <b>Especialidade registrada:</b> {formatar_maiusculo(valor)}\n\n"
-        "Agora informe a <b>descrição do Procedimento/Exame</b>:\n"
-        "<i>(ex: ULTRASSONOGRAFIA, CONSULTA CARDIOLOGIA)</i>",
+        "Agora informe a <b>descrição do Procedimento/Exame / Consulta</b>:\n"
+        "<i>(ex: EXAME, CONSULTA)</i>",
         parse_mode="HTML",
     )
     return ETAPA_PROCEDIMENTO
@@ -334,7 +334,7 @@ async def finalizar_cadastro(update: Update, context: ContextTypes.DEFAULT_TYPE)
         context.user_data.pop("_em_fluxo_admin", None)
         return ConversationHandler.END
 
-        dados_salvar = {
+    dados_salvar = {
         "chat_id": user_id,
         "numero_sus": dados.get("sus"),
         "nome_paciente": dados.get("nome"),
