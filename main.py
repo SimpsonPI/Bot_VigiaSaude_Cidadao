@@ -105,6 +105,14 @@ from handler_enquete_local import (
     comando_apagar_enquete,
 )
 
+from autorizacao import verificar_autorizado
+from handler_autorizacao import (
+    comando_autorizar,
+    comando_desautorizar,
+    comando_listar_autorizados,
+)
+from telegram.ext import TypeHandler, ApplicationHandlerStop
+
 logger = logging.getLogger(__name__)
 
 
@@ -163,6 +171,44 @@ def main():
         .post_init(post_init)
         .build()
     )
+
+        # ═══ MIDDLEWARE DE AUTORIZAÇÃO ═══
+    async def verificar_acesso(update: Update, context: ContextTypes.DEFAULT_TYPE):
+        user = update.effective_user
+        if not user:
+            return
+
+        # Admin sempre passa
+        from config import is_admin
+        if is_admin(user.id):
+            return
+
+        # Comandos admin sempre passam (pra você conseguir autorizar)
+        if update.message and update.message.text:
+            if update.message.text.startswith(("/autorizar", "/desautorizar", "/listar_autorizados")):
+                return
+
+        if not verificar_autorizado(user.id):
+            texto = (
+                "🔒 <b>Acesso Restrito</b>\n\n"
+                "Este bot está em fase de testes e o acesso é concedido "
+                "apenas por autorização.\n\n"
+                "Enquanto isso, você pode usar o VigiaSaúde principal:\n"
+                "👉 @vigiasaude_bot"
+            )
+            if update.message:
+                await update.message.reply_text(texto, parse_mode="HTML")
+            elif update.callback_query:
+                await update.callback_query.answer("Acesso restrito", show_alert=True)
+                try:
+                    await update.callback_query.message.reply_text(texto, parse_mode="HTML")
+                except Exception:
+                    pass
+
+            raise ApplicationHandlerStop
+
+    app.add_handler(TypeHandler(Update, verificar_acesso), group=-1)
+    # ═══════════════════════════════════
     app.add_error_handler(erro_global_handler)
 
     conv_corrigir = ConversationHandler(
@@ -218,6 +264,9 @@ def main():
     app.add_handler(CommandHandler("listar_enquetes", comando_listar_enquetes))
     app.add_handler(CommandHandler("encerrar", comando_encerrar))
     app.add_handler(CommandHandler("apagar_enquete", comando_apagar_enquete))
+    app.add_handler(CommandHandler("autorizar", comando_autorizar))
+    app.add_handler(CommandHandler("desautorizar", comando_desautorizar))
+    app.add_handler(CommandHandler("listar_autorizados", comando_listar_autorizados))
 
     # Handler IA do admin
     app.add_handler(

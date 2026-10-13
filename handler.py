@@ -124,8 +124,8 @@ async def callback_faq_suporte(update: Update, context: ContextTypes.DEFAULT_TYP
     await query.answer()
 
     faq_texto = (
-        "❓ <b>FAQ e Central de Ajuda — VigiaSaude Cidadao Cidadão</b>\n\n"
-        "<b>1. O que é o VigiaSaude Cidadao Cidadão?</b>\n"
+        "❓ <b>FAQ e Central de Ajuda — VigiaSaude Cidadão</b>\n\n"
+        "<b>1. O que é o VigiaSaude Cidadão?</b>\n"
         "Serviço independente de monitoramento. Não possuímos vínculo oficial com a FMS ou Prefeitura de Teresina, fazemos o monitoramento do andamento de suas regulações de saúde (consultas, exames e cirurgias) de forma automatizada.\n\n"
         "<b>2. Como o bot rastreia minhas solicitações?</b>\n"
         "Utilizamos os dados informados por você (como o número da regulação) para verificar atualizações diretamente nos sistemas públicos.\n\n"
