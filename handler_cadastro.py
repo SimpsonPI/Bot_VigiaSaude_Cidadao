@@ -11,36 +11,6 @@ from utils import (
     formatar_data, formatar_celular, formatar_maiusculo, verificar_se_e_menu_e_executar
 )
 
-async def receber_nome(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    if await verificar_se_e_menu_e_executar(update, context): return ConversationHandler.END
-    context.user_data["nome"] = formatar_maiusculo(update.message.text)
-    await update.message.reply_text("Digite o número de <b>celular/WhatsApp</b> (com DDD):", parse_mode="HTML")
-    return ETAPA_CELULAR
-
-async def receber_celular(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    if await verificar_se_e_menu_e_executar(update, context): return ConversationHandler.END
-    context.user_data["celular"] = formatar_celular(update.message.text)[cite: 2]
-    await update.message.reply_text("Digite a <b>data de nascimento</b> do paciente (DD/MM/AAAA):", parse_mode="HTML")
-    return ETAPA_NASCIMENTO
-
-async def receber_nascimento(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    if await verificar_se_e_menu_e_executar(update, context): return ConversationHandler.END
-    context.user_data["nascimento"] = formatar_data(update.message.text)[cite: 2]
-    await update.message.reply_text("Agora, por favor, digite o <b>Número da Regulação</b>:", parse_mode="HTML")
-    return ETAPA_REGULACAO
-
-async def receber_cbo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    if await verificar_se_e_menu_e_executar(update, context): return ConversationHandler.END
-    cbo = update.message.text.strip()
-    context.user_data["cbo"] = formatar_maiusculo(cbo) if cbo != "0" else ""
-    await update.message.reply_text("Qual a descrição do <b>Procedimento/Exame</b>?", parse_mode="HTML")
-    return ETAPA_PROCEDIMENTO
-
-async def receber_procedimento(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    if await verificar_se_e_menu_e_executar(update, context): return ConversationHandler.END
-    context.user_data["procedimento"] = formatar_maiusculo(update.message.text)
-    # Restante do código do termo LGPD...
-
 async def iniciar_cadastro_manual(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Inicia o cadastro de uma nova regulação institucional."""
     user_id = update.effective_user.id
@@ -102,7 +72,6 @@ async def receber_sus(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
     context.user_data['sus'] = numero_sus
 
     try:
-        print(f"DEBUG: Buscando SUS {numero_sus} no Supabase...")
 
         resposta = supabase.table("AlertaSUS_2.0").select("*").eq(
             "numero_sus", numero_sus
@@ -184,7 +153,9 @@ async def callback_reuso_dados(update: Update, context: ContextTypes.DEFAULT_TYP
 
 async def receber_nome(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     if await verificar_se_e_menu_e_executar(update, context): return ConversationHandler.END
-    context.user_data["nome"] = update.message.text.strip()
+    nome = update.message.text.strip()
+    nome = nome.replace("<", "").replace(">", "").replace("&", "&amp;")[:80]
+    context.user_data["nome"] = nome
     await update.message.reply_text("Digite o número de <b>celular/WhatsApp</b> (com DDD):", parse_mode="HTML")
     return ETAPA_CELULAR
 
@@ -289,7 +260,10 @@ async def receber_cbo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
         )
         return ETAPA_PROCEDIMENTO
     
-    context.user_data["cbo"] = formatar_maiusculo(valor)
+    cbo = update.message.text.strip()
+    cbo = cbo.replace("<", "").replace(">", "").replace("&", "&amp;")[:80]
+    cbo = cbo.replace("<","").replace(">","").replace("&","&amp;")[:80]
+    context.user_data["cbo"] = formatar_maiusculo(cbo) if cbo != "0" else ""
     
     await update.message.reply_text(
         f"✅ <b>Especialidade registrada:</b> {formatar_maiusculo(valor)}\n\n"
@@ -301,7 +275,9 @@ async def receber_cbo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
 
 async def receber_procedimento(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     if await verificar_se_e_menu_e_executar(update, context): return ConversationHandler.END
-    context.user_data["procedimento"] = update.message.text.strip()
+    proc = update.message.text.strip()
+    proc = proc.replace("<", "").replace(">", "").replace("&", "&amp;")[:80]
+    context.user_data["procedimento"] = formatar_maiusculo(proc)
 
     teclado_lgpd = InlineKeyboardMarkup([
         [InlineKeyboardButton("✅ Aceitar e Finalizar", callback_data="aceitar_lgpd")],
