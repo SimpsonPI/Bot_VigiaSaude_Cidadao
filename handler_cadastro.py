@@ -7,7 +7,7 @@ from utils import (
     DISCLAIMER_TEXTO, TECLADO_MENU, TECLADO_CANCELAR,
     ETAPA_SUS, ETAPA_NOME, ETAPA_CELULAR, ETAPA_NASCIMENTO,
     ETAPA_REGULACAO, ETAPA_CBO, ETAPA_PROCEDIMENTO, ETAPA_LGPD,
-    ETAPA_CONFIRMAR_REUSO,
+    ETAPA_CONFIRMAR_REUSO, ETAPA_ESCOLHER_SUS,
     formatar_data, formatar_celular, formatar_maiusculo, verificar_se_e_menu_e_executar
 )
 
@@ -39,18 +39,115 @@ async def iniciar_cadastro_manual(update: Update, context: ContextTypes.DEFAULT_
         )
         return ConversationHandler.END
 
-    # Continua o fluxo normal
+    # Continua o fluxo — verifica SUS ja cadastrados
     context.user_data.clear()
-    await update.message.reply_text(
-        "📝 <b>Iniciando cadastro de nova regulação.</b>\n\n"
-        f"Você tem <b>{total_regs}/{LIMITE_MAX}</b> regulações cadastradas.\n\n"
-        "Por favor, digite o <b>número do Cartão SUS</b> do paciente (15 dígitos):",
-        parse_mode="HTML",
-        reply_markup=TECLADO_CANCELAR
-    )
     context.user_data["_em_fluxo_admin"] = "cadastro"
-    return ETAPA_SUS
 
+    try:
+        res_sus = supabase.table("AlertaSUS_2.0").select(
+            "numero_sus, nome_paciente, celular, data_nascimento"
+        ).eq("chat_id", user_id).order("id", desc=True).execute()
+        registros = res_sus.data or []
+    except Exception as e:
+        logger.error(f"Erro ao buscar SUS: {e}")
+        registros = []
+
+    sus_unicos = {}
+    for r in registros:
+        num = r.get("numero_sus")
+        if num and num not in sus_unicos:
+            sus_unicos[num] = r
+    sus_lista = list(sus_unicos.items())
+
+    if not sus_lista:
+        await update.message.reply_text(
+            "📝 <b>Iniciando cadastro de nova regulação.</b>\n\n"
+            f"Você tem <b>{total_regs}/{LIMITE_MAX}</b> regulações cadastradas.\n\n"
+            "Por favor, digite o <b>número do Cartão SUS</b> do paciente (15 dígitos):",
+            parse_mode="HTML",
+            reply_markup=TECLADO_CANCELAR
+        )
+        return ETAPA_SUS
+
+    if len(sus_lista) == 1:
+        num, dados = sus_lista[0]
+        nome = dados.get("nome_paciente") or "—"
+        teclado = InlineKeyboardMarkup([
+            [InlineKeyboardButton("✅ Usar mesmo Cartão do SUS", callback_data=f"usar_sus_{num}")],
+            [InlineKeyboardButton("🔄 Cadastrar novo SUS", callback_data="novo_sus")],
+            [InlineKeyboardButton("❌ Cancelar", callback_data="iniciar")],
+        ])
+        await update.message.reply_text(
+            "📝 <b>Iniciando cadastro de nova regulação.</b>\n\n"
+            f"Você tem <b>{total_regs}/{LIMITE_MAX}</b> regulações cadastradas.\n\n"
+            f"💳 Detectei um Cartão do SUS cadastrado:\n"
+            f"<code>{num}</code> · {nome}\n\n"
+            "Deseja usar o mesmo número de Cartão do SUS?",
+            parse_mode="HTML", reply_markup=teclado
+        )
+    else:
+        botoes = []
+        for num, dados in sus_lista:
+            nome = (dados.get("nome_paciente") or "—")[:22]
+            botoes.append([InlineKeyboardButton(
+                f"💳 {num} · {nome}",
+                callback_data=f"usar_sus_{num}"
+            )])
+        botoes.append([InlineKeyboardButton("➕ Cadastrar novo SUS", callback_data="novo_sus")])
+        botoes.append([InlineKeyboardButton("❌ Cancelar", callback_data="iniciar")])
+        await update.message.reply_text(
+            "📝 <b>Iniciando cadastro de nova regulação.</b>\n\n"
+            f"Você tem <b>{total_regs}/{LIMITE_MAX}</b> regulações cadastradas.\n\n"
+            "💳 <b>Selecione qual Cartão do SUS deseja usar:</b>",
+            parse_mode="HTML", reply_markup=InlineKeyboardMarkup(botoes)
+        )
+
+    return ETAPA_ESCOLHER_SUS
+
+async def callback_escolher_sus(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """Processa a escolha do SUS no início do cadastro."""
+    query = update.callback_query
+    await query.answer()
+    data = query.data
+
+    if data == "novo_sus":
+        for k in ("sus", "nome", "celular", "nascimento"):
+            context.user_data.pop(k, None)
+        await query.edit_message_text(
+            "Ok! Digite o <b>número do Cartão SUS</b> do paciente (15 dígitos):",
+            parse_mode="HTML",
+        )
+        return ETAPA_SUS
+
+    if data.startswith("usar_sus_"):
+        num_sus = data.replace("usar_sus_", "")
+        try:
+            res = supabase.table("AlertaSUS_2.0").select(
+                "nome_paciente, celular, data_nascimento"
+            ).eq("chat_id", update.effective_user.id).eq(
+                "numero_sus", num_sus
+            ).order("id", desc=True).limit(1).execute()
+            dados = res.data[0] if res.data else {}
+        except Exception as e:
+            logger.error(f"Erro ao buscar dados do SUS: {e}")
+            dados = {}
+
+        context.user_data["sus"] = num_sus
+        context.user_data["nome"] = dados.get("nome_paciente") or ""
+        context.user_data["celular"] = dados.get("celular") or ""
+        context.user_data["nascimento"] = dados.get("data_nascimento") or ""
+
+        await query.edit_message_text(
+            f"✅ <b>SUS carregado:</b> <code>{num_sus}</code>\n\n"
+            f"👤 <b>Paciente:</b> {dados.get('nome_paciente') or '—'}\n"
+            f"📱 <b>Celular:</b> {dados.get('celular') or '—'}\n"
+            f"📅 <b>Nascimento:</b> {dados.get('data_nascimento') or '—'}\n\n"
+            "Agora digite o <b>ID da Regulação</b> (8 dígitos):",
+            parse_mode="HTML",
+        )
+        return ETAPA_REGULACAO
+
+    return ETAPA_ESCOLHER_SUS
 
 async def receber_sus(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     if await verificar_se_e_menu_e_executar(update, context): return ConversationHandler.END

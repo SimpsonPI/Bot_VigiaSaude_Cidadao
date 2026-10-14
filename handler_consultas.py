@@ -1,4 +1,5 @@
 # handler_consultas.py
+import asyncio
 import logging
 import re
 from html import escape
@@ -219,12 +220,25 @@ async def comando_verificar_todas(update: Update, context: ContextTypes.DEFAULT_
 
     relatorios = []
 
+        # Dispara verificação em BACKGROUND
+    asyncio.create_task(
+        _verificar_todas_bg(regulacoes, msg_alvo, restantes)
+    )
+
+async def _verificar_todas_bg(regulacoes, msg_alvo, restantes):
+    """Roda a verificação de N regulações em background."""
+    relatorios = []
     for reg in regulacoes:
         num_reg = reg.get("numero_reg")
         if not num_reg:
             continue
         try:
-            resultado = await consultar_com_limite(num_reg)
+            resultado = await asyncio.wait_for(
+                consultar_com_limite(num_reg), timeout=30
+            )
+        except asyncio.TimeoutError:
+            logger.warning(f"Timeout FMS {num_reg}")
+            resultado = {"sucesso": False, "mensagem": "Tempo limite excedido"}
         except Exception as e:
             logger.error(f"Erro FMS {num_reg}: {e}")
             resultado = {"sucesso": False}
@@ -232,27 +246,27 @@ async def comando_verificar_todas(update: Update, context: ContextTypes.DEFAULT_
         msg_html = _montar_msg_html(num_reg, resultado, reg)
         relatorios.append(msg_html)
 
-    if relatorios:
-        mensagem_final = "\n\n➖➖➖➖➖➖➖➖➖➖\n\n".join(relatorios)
-        if len(mensagem_final) <= 4096:
-            await enviar_resposta(update, mensagem_final, parse_mode="HTML")
+    try:
+        if relatorios:
+            mensagem_final = "\n\n➖➖➖➖➖➖➖➖➖➖\n\n".join(relatorios)
+            if len(mensagem_final) <= 4096:
+                await msg_alvo.reply_text(mensagem_final, parse_mode="HTML")
+            else:
+                for relatorio in relatorios:
+                    await msg_alvo.reply_text(relatorio, parse_mode="HTML")
+
+            restantes_agora = max(0, restantes - 1)
+            await msg_alvo.reply_text(
+                f"<i>📊 Verificações completas restantes hoje: <b>{restantes_agora}/3</b></i>",
+                parse_mode="HTML",
+            )
         else:
-            for relatorio in relatorios:
-                await enviar_resposta(update, relatorio, parse_mode="HTML")
-
-        # Contador de restantes
-                # Contador final (usa o valor já calculado no início, sem re-consultar)
-        restantes_agora = max(0, restantes - 1)
-        await msg_alvo.reply_text(
-            f"<i>📊 Verificações completas restantes hoje: <b>{restantes_agora}/3</b></i>",
-            parse_mode="HTML"
-        )
-    else:
-        await enviar_resposta(
-            update,
-            "⚠️ Não foi possível recuperar os dados no momento. Tente novamente mais tarde."
-        )
-
+            await msg_alvo.reply_text(
+                "⚠️ Não foi possível recuperar os dados no momento.",
+                parse_mode="HTML",
+            )
+    except Exception as e:
+        logger.error(f"Erro em _verificar_todas_bg: {e}")
 
 # ═══════════════════════════════════════════════
 # COMANDO: VERIFICAR ESPECÍFICO
@@ -412,40 +426,14 @@ async def processar_verificar_especifico(update: Update, context: ContextTypes.D
         )
         await msg_alvo.reply_text(msg_carregando, parse_mode="HTML")
 
-        # Consulta a FMS
-        resultado = await consultar_com_limite(num_reg)
-
-        # Busca dados complementares no Supabase
-        res_db = (
-            supabase.table("AlertaSUS_2.0")
-            .select("*")
-            .eq("numero_reg", num_reg)
-            .execute()
+                # Dispara verificação em BACKGROUND (não bloqueia o bot)
+        asyncio.create_task(
+                    _verificar_especifico_bg(num_reg, user_id, msg_alvo, restantes)
         )
-        reg_data = res_db.data[0] if res_db.data else {}
 
-        # Monta e envia a mensagem final
-        msg_html = _montar_msg_html(num_reg, resultado, reg_data)
-        await msg_alvo.reply_text(msg_html, parse_mode="HTML")
+        return ConversationHandler.END
 
-        # Atualiza o status_anterior no banco
-        try:
-            if isinstance(resultado, dict) and resultado.get("sucesso"):
-                status_novo = (resultado.get("situacao") or "Informada no portal").strip()
-                supabase.table("AlertaSUS_2.0").update(
-                    {"status_anterior": status_novo}
-                ).eq("numero_reg", num_reg).eq(
-                    "chat_id", str(user_id)
-                ).execute()
-        except Exception as e:
-            logger.error(f"Erro ao atualizar status_anterior: {e}")
-
-        # Contador final
-        restantes_agora = max(0, restantes - 1)
-        await msg_alvo.reply_text(
-            f"<i>📊 Verificações específicas restantes hoje: <b>{restantes_agora}/10</b></i>",
-            parse_mode="HTML"
-        )
+        return ConversationHandler.END
 
     except Exception as e:
         logger.error(f"Erro em processar_verificar_especifico: {e}")
@@ -462,3 +450,55 @@ async def processar_verificar_especifico(update: Update, context: ContextTypes.D
         context.user_data.pop("_em_fluxo_admin", None)
 
     return ConversationHandler.END
+
+async def _verificar_especifico_bg(num_reg, user_id, msg_alvo, restantes):
+    """Roda a consulta FMS em background e envia o resultado quando chegar."""
+    try:
+        try:
+            resultado = await asyncio.wait_for(
+                consultar_com_limite(num_reg), timeout=30
+            )
+        except asyncio.TimeoutError:
+            await msg_alvo.reply_text(
+                "⏳ <b>O portal FMS está demorando para responder.</b>\n\n"
+                "Tente novamente em alguns minutos.",
+                parse_mode="HTML",
+            )
+            return
+
+        # Busca dados complementares
+        try:
+            res_db = (
+                supabase.table("AlertaSUS_2.0")
+                .select("*")
+                .eq("numero_reg", num_reg)
+                .execute()
+            )
+            reg_data = res_db.data[0] if res_db.data else {}
+        except Exception:
+            reg_data = {}
+
+        # Envia a mensagem final
+        msg_html = _montar_msg_html(num_reg, resultado, reg_data)
+        await msg_alvo.reply_text(msg_html, parse_mode="HTML")
+
+        # Atualiza status_anterior
+        try:
+            if isinstance(resultado, dict) and resultado.get("sucesso"):
+                status_novo = (resultado.get("situacao") or "Informada no portal").strip()
+                supabase.table("AlertaSUS_2.0").update(
+                    {"status_anterior": status_novo}
+                ).eq("numero_reg", num_reg).eq(
+                    "chat_id", str(user_id)
+                ).execute()
+        except Exception as e:
+            logger.error(f"Erro ao atualizar status_anterior: {e}")
+
+        # Contador final
+        restantes_agora = max(0, restantes - 1)
+        await msg_alvo.reply_text(
+            f"<i>📊 Verificações específicas restantes hoje: <b>{restantes_agora}/10</b></i>",
+            parse_mode="HTML",
+        )
+    except Exception as e:
+        logger.error(f"Erro em _verificar_especifico_bg: {e}")
