@@ -283,7 +283,7 @@ async def salvar_novo_valor(update: Update, context: ContextTypes.DEFAULT_TYPE) 
         if campo in ("numero_reg", "numero_regulacao", "id_regulacao"):
             try:
                 query_reset = supabase.table("AlertaSUS_2.0").update(
-                    {"status_anterior": None}
+                    {"status_anterior_cidadao": None}
                 ).eq("numero_reg", novo_valor)
                 try:
                     query_reset = query_reset.eq("chat_id", int(chat_id))

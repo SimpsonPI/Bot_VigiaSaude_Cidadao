@@ -568,7 +568,7 @@ async def executar_varredura_automatica(context: ContextTypes.DEFAULT_TYPE):
     # ═══════════════════════════════════════════════════════════
     try:
         from database import supabase as sb_check
-        res_check = sb_check.table("config_sistema").select("valor").eq("chave", "ultima_varredura").execute()
+        res_check = sb_check.table("config_sistema").select("valor").eq("chave", "ultima_varredura_cidadao").execute()
         if res_check.data:
             ultima_str = res_check.data[0]["valor"]
             ultima = datetime.fromisoformat(str(ultima_str).replace("Z", "+00:00"))
@@ -586,7 +586,7 @@ async def executar_varredura_automatica(context: ContextTypes.DEFAULT_TYPE):
     try:
         from database import supabase as sb_save
         sb_save.table("config_sistema").upsert({
-            "chave": "ultima_varredura",
+            "chave": "ultima_varredura_cidadao",
             "valor": datetime.now(timezone.utc).isoformat(),
         }).execute()
     except Exception as e:
@@ -625,7 +625,7 @@ async def executar_varredura_automatica(context: ContextTypes.DEFAULT_TYPE):
         for reg in regulacoes:
             num_reg = reg.get("numero_reg")
             chat_id = reg.get("chat_id")
-            status_ant = (reg.get("status_anterior") or "").strip()
+            status_ant = (reg.get("status_anterior_cidadao") or "").strip()
             posicao_ant = (reg.get("posicao_anterior") or "").strip()
 
             if not num_reg or not chat_id:
@@ -661,7 +661,7 @@ async def executar_varredura_automatica(context: ContextTypes.DEFAULT_TYPE):
                 status_novo = (resultado_fms.get("situacao") or "").strip()
                 posicao_nova = (resultado_fms.get("posicao_fila") or "").strip()
                 sb.table("AlertaSUS_2.0").update({
-                    "status_anterior": status_novo,
+                    "status_anterior_cidadao": status_novo,
                     "posicao_anterior": posicao_nova,
                 }).eq("numero_reg", str(num_reg)).eq(
                     "chat_id", str(chat_id)

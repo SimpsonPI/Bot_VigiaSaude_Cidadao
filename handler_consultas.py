@@ -305,7 +305,7 @@ async def iniciar_verificar_especifico(update: Update, context: ContextTypes.DEF
             num_reg = reg.get("numero_reg")
             nome_bruto = reg.get("nome_paciente", "")
             cbo = reg.get("cbo", "")
-            status_reg = reg.get("status_anterior") or ""
+            status_reg = reg.get("status_anterior_cidadao") or ""
 
             cbo_str = f" ({cbo.strip().upper()})" if cbo and str(cbo).strip().upper() not in ["NONE", "N/A", ""] else ""
             emoji = emoji_por_status(status_reg)
@@ -482,17 +482,17 @@ async def _verificar_especifico_bg(num_reg, user_id, msg_alvo, restantes):
         msg_html = _montar_msg_html(num_reg, resultado, reg_data)
         await msg_alvo.reply_text(msg_html, parse_mode="HTML")
 
-        # Atualiza status_anterior
+        # Atualiza status_anterior_cidadao
         try:
             if isinstance(resultado, dict) and resultado.get("sucesso"):
                 status_novo = (resultado.get("situacao") or "Informada no portal").strip()
                 supabase.table("AlertaSUS_2.0").update(
-                    {"status_anterior": status_novo}
+                    {"status_anterior_cidadao": status_novo}
                 ).eq("numero_reg", num_reg).eq(
                     "chat_id", str(user_id)
                 ).execute()
         except Exception as e:
-            logger.error(f"Erro ao atualizar status_anterior: {e}")
+            logger.error(f"Erro ao atualizar status_anterior_cidadao: {e}")
 
         # Contador final
         restantes_agora = max(0, restantes - 1)

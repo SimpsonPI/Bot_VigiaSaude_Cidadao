@@ -38,7 +38,7 @@ async def executar_varredura_automatica(context: ContextTypes.DEFAULT_TYPE):
                 or reg.get("telegram_id")
             )
             status_antigo = (
-                reg.get("status_anterior")
+                reg.get("status_anterior_cidadao")
                 or reg.get("status_atual")
                 or "PENDENTE"
             )
@@ -69,11 +69,11 @@ async def executar_varredura_automatica(context: ContextTypes.DEFAULT_TYPE):
                 try:
                     if asyncio.iscoroutinefunction(atualizar_campo_regulacao):
                         await atualizar_campo_regulacao(
-                            num_reg, "status_anterior", status_novo
+                            num_reg, "status_anterior_cidadao", status_novo
                         )
                     else:
                         atualizar_campo_regulacao(
-                            num_reg, "status_anterior", status_novo
+                            num_reg, "status_anterior_cidadao", status_novo
                         )
                     logger.info(
                         f"Status da regulação {num_reg} atualizado no Supabase para: {status_novo}"
