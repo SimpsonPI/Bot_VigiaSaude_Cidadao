@@ -1,5 +1,6 @@
 # handler_cadastro.py
 import re
+from config import is_admin
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.ext import ContextTypes, ConversationHandler
 from database import salvar_regulacao, registrar_consentimento_lgpd, supabase
@@ -25,7 +26,7 @@ async def iniciar_cadastro_manual(update: Update, context: ContextTypes.DEFAULT_
         
         total_regs = 0
 
-    if total_regs >= LIMITE_MAX:
+        if total_regs >= LIMITE_MAX and not is_admin(user_id):
         await update.message.reply_text(
             f"📌 <b>Limite de regulações atingido</b>\n\n"
             f"Você já cadastrou <b>{total_regs}/{LIMITE_MAX}</b> regulações — "
@@ -45,7 +46,7 @@ async def iniciar_cadastro_manual(update: Update, context: ContextTypes.DEFAULT_
 
     try:
         res_sus = supabase.table("AlertaSUS_2.0").select(
-            "numero_sus, nome_paciente, celular, data_nascimento"
+            "numero_sus, nome_paciente, data_nascimento"
         ).eq("chat_id", user_id).order("id", desc=True).execute()
         registros = res_sus.data or []
     except Exception as e:

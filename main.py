@@ -236,7 +236,7 @@ def main():
     # Comandos públicos
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("iniciar", start))
-    app.add_handler(CommandHandler("menu", start))
+    #app.add_handler(CommandHandler("menu", start))
     app.add_handler(CommandHandler("cadastrar_nova", iniciar_cadastro_manual))
     app.add_handler(CommandHandler("verificar_todos", comando_verificar_todas))
     app.add_handler(CommandHandler("verificar_especifico", iniciar_verificar_especifico))

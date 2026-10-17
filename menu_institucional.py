@@ -9,7 +9,6 @@ async def configurar_menu_institucional(app):
     """Configura o menu nativo do Telegram com comandos institucionais."""
     comandos = [
         BotCommand("start", "👋 Iniciar atendimento"),
-        BotCommand("menu", "📋 Menu principal"),
         BotCommand("cadastrar_nova", "➕ Cadastrar nova regulação"),
         BotCommand("verificar_todos", "🔍 Verificar todas as regulações"),
         BotCommand("verificar_especifico", "🎯 Verificar regulação específica"),
