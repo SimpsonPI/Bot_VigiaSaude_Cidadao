@@ -4,11 +4,16 @@ from telegram.ext import ContextTypes, ConversationHandler
 from database import supabase
 from utils import TECLADO_MENU
 from utils import (
-    SELECIONAR_REGULACAO, SELECIONAR_CAMPO, AGUARDAR_NOVO_VALOR,
-    SELECIONAR_REGULACAO_EXCLUIR, CONFIRMAR_EXCLUSAO, TECLADO_MENU
+    SELECIONAR_REGULACAO,
+    SELECIONAR_CAMPO,
+    AGUARDAR_NOVO_VALOR,
+    SELECIONAR_REGULACAO_EXCLUIR,
+    CONFIRMAR_EXCLUSAO,
+    TECLADO_MENU,
 )
 
 logger = logging.getLogger(__name__)
+
 
 def _mascarar_nome_custom(nome: str) -> str:
     if not nome or str(nome).lower() in ["none", "não informado", ""]:
@@ -20,6 +25,7 @@ def _mascarar_nome_custom(nome: str) -> str:
     iniciais = [f"{p[0].upper()}." for p in partes[1:]]
     return f"{primeiro} {' '.join(iniciais)}"
 
+
 # --- FLUXO DE CORREÇÃO ---
 async def iniciar_corrigir(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     try:
@@ -29,8 +35,10 @@ async def iniciar_corrigir(update: Update, context: ContextTypes.DEFAULT_TYPE) -
 
         if not regulacoes_brutas:
             msg = "⚠️ Nenhuma regulação cadastrada para corrigir."
-            if update.message: await update.message.reply_text(msg)
-            elif update.callback_query: await update.callback_query.message.reply_text(msg)
+            if update.message:
+                await update.message.reply_text(msg)
+            elif update.callback_query:
+                await update.callback_query.message.reply_text(msg)
             return ConversationHandler.END
 
         # 🛡️ Remove duplicatas com base no 'numero_reg' para a exibição
@@ -50,12 +58,14 @@ async def iniciar_corrigir(update: Update, context: ContextTypes.DEFAULT_TYPE) -
             teclado.append([InlineKeyboardButton(rotulo, callback_data=f"corr_reg_{num_reg}")])
 
         teclado.append([InlineKeyboardButton("❌ Cancelar", callback_data="cancelar_corr")])
-        
+
         msg = "🔧 <b>Selecione qual regulação deseja corrigir:</b>"
         if update.message:
             await update.message.reply_text(msg, reply_markup=InlineKeyboardMarkup(teclado), parse_mode="HTML")
         elif update.callback_query:
-            await update.callback_query.message.reply_text(msg, reply_markup=InlineKeyboardMarkup(teclado), parse_mode="HTML")
+            await update.callback_query.message.reply_text(
+                msg, reply_markup=InlineKeyboardMarkup(teclado), parse_mode="HTML"
+            )
 
         context.user_data["_fluxo_corrigir_ativo"] = True
         return SELECIONAR_REGULACAO
@@ -63,6 +73,7 @@ async def iniciar_corrigir(update: Update, context: ContextTypes.DEFAULT_TYPE) -
         logger.error(f"Erro em iniciar_corrigir: {e}")
         context.user_data.pop("_fluxo_corrigir_ativo", None)
         return ConversationHandler.END
+
 
 async def mostrar_resumo_regulacao(update_or_query, context, num_reg, chat_id=None):
     """
@@ -73,7 +84,7 @@ async def mostrar_resumo_regulacao(update_or_query, context, num_reg, chat_id=No
         if chat_id is not None:
             query = query.eq("chat_id", chat_id)
         response = query.execute()
-        
+
         if response.data:
             reg = response.data[0]
             resumo = (
@@ -84,10 +95,10 @@ async def mostrar_resumo_regulacao(update_or_query, context, num_reg, chat_id=No
                 f"🏥 <b>Procedimento:</b> {reg.get('procedimento', 'Não informado')}\n\n"
                 f"✅ <b>Alteração realizada com sucesso!</b>"
             )
-            
+
             teclado = [
                 [InlineKeyboardButton("✏️ Editar outro campo", callback_data=f"corr_reg_{num_reg}")],
-                [InlineKeyboardButton("🏁 Finalizar", callback_data="finalizar_corr")]
+                [InlineKeyboardButton("🏁 Finalizar", callback_data="finalizar_corr")],
             ]
             reply_markup = InlineKeyboardMarkup(teclado)
 
@@ -99,6 +110,7 @@ async def mostrar_resumo_regulacao(update_or_query, context, num_reg, chat_id=No
         logger.error(f"Erro ao buscar resumo da regulação: {e}")
         if hasattr(update_or_query, "message") and update_or_query.message:
             await update_or_query.message.reply_text("✅ Campo atualizado com sucesso!", reply_markup=TECLADO_MENU)
+
 
 async def selecionar_regulacao_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     print(f"🔴 CALLBACK: {update.callback_query.data}", flush=True)
@@ -140,17 +152,14 @@ async def selecionar_regulacao_callback(update: Update, context: ContextTypes.DE
             [InlineKeyboardButton("🩺 Especialidade / CBO", callback_data="corr_campo_cbo")],
             [InlineKeyboardButton("📱 Celular", callback_data="corr_campo_celular")],
             [InlineKeyboardButton("🩺 Procedimento", callback_data="corr_campo_procedimento")],
-            [InlineKeyboardButton("❌ Cancelar", callback_data="cancelar_corr")]
+            [InlineKeyboardButton("❌ Cancelar", callback_data="cancelar_corr")],
         ]
 
-        await query.edit_message_text(
-            resumo_atual,
-            reply_markup=InlineKeyboardMarkup(teclado),
-            parse_mode="HTML"
-        )
+        await query.edit_message_text(resumo_atual, reply_markup=InlineKeyboardMarkup(teclado), parse_mode="HTML")
         return SELECIONAR_CAMPO
 
     return SELECIONAR_REGULACAO
+
 
 async def selecionar_campo_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     query = update.callback_query
@@ -182,18 +191,16 @@ async def selecionar_campo_callback(update: Update, context: ContextTypes.DEFAUL
                 "💡 O ID correto tem <b>8 dígitos</b>. Em caso de dúvida, "
                 "procure o comprovante de agendamento ou a unidade básica de saúde.\n\n"
                 "<b>Digite o novo ID da regulação:</b>",
-                parse_mode="HTML"
+                parse_mode="HTML",
             )
             return AGUARDAR_NOVO_VALOR
 
         # Outros campos: mensagem padrão
-        await query.edit_message_text(
-            f"✍️ Digite o novo valor para o campo <b>{campo}</b>:",
-            parse_mode="HTML"
-        )
+        await query.edit_message_text(f"✍️ Digite o novo valor para o campo <b>{campo}</b>:", parse_mode="HTML")
         return AGUARDAR_NOVO_VALOR
 
     return SELECIONAR_CAMPO
+
 
 async def salvar_novo_valor(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     novo_valor = update.message.text.strip()
@@ -213,6 +220,7 @@ async def salvar_novo_valor(update: Update, context: ContextTypes.DEFAULT_TYPE) 
     if campo in ("numero_reg", "numero_regulacao", "id_regulacao"):
         # Remove tudo que não é dígito
         import re
+
         novo_valor_limpo = re.sub(r"\D", "", novo_valor)
 
         if len(novo_valor_limpo) != 8:
@@ -232,9 +240,13 @@ async def salvar_novo_valor(update: Update, context: ContextTypes.DEFAULT_TYPE) 
 
         # Verifica se o novo ID já existe para este usuário
         try:
-            res_dup = supabase.table("AlertaSUS_2.0").select("id").eq(
-                "numero_reg", novo_valor
-            ).eq("chat_id", int(chat_id) if chat_id.isdigit() else chat_id).execute()
+            res_dup = (
+                supabase.table("AlertaSUS_2.0")
+                .select("id")
+                .eq("numero_reg", novo_valor)
+                .eq("chat_id", int(chat_id) if chat_id.isdigit() else chat_id)
+                .execute()
+            )
 
             if res_dup.data:
                 await update.message.reply_text(
@@ -253,11 +265,11 @@ async def salvar_novo_valor(update: Update, context: ContextTypes.DEFAULT_TYPE) 
     elif campo == "celular":
         # Valida tamanho mínimo de celular
         import re
+
         digitos = re.sub(r"\D", "", novo_valor)
         if len(digitos) < 10:
             await update.message.reply_text(
-                "⚠️ <b>Número de celular inválido.</b>\n\n"
-                "Digite com DDD (ex: 86999999999).",
+                "⚠️ <b>Número de celular inválido.</b>\n\n" "Digite com DDD (ex: 86999999999).",
                 parse_mode="HTML",
                 reply_markup=TECLADO_MENU,
             )
@@ -267,9 +279,7 @@ async def salvar_novo_valor(update: Update, context: ContextTypes.DEFAULT_TYPE) 
 
     # 3. Executa o UPDATE com filtro por chat_id (CRÍTICO)
     try:
-        query = supabase.table("AlertaSUS_2.0").update(
-            {campo: novo_valor}
-        ).eq("numero_reg", num_reg)
+        query = supabase.table("AlertaSUS_2.0").update({campo: novo_valor}).eq("numero_reg", num_reg)
 
         # Se o chat_id for numérico, compara como int
         try:
@@ -282,9 +292,11 @@ async def salvar_novo_valor(update: Update, context: ContextTypes.DEFAULT_TYPE) 
         # Se o campo alterado foi o ID da regulação, reseta o status
         if campo in ("numero_reg", "numero_regulacao", "id_regulacao"):
             try:
-                query_reset = supabase.table("AlertaSUS_2.0").update(
-                    {"status_anterior_cidadao": None}
-                ).eq("numero_reg", novo_valor)
+                query_reset = (
+                    supabase.table("AlertaSUS_2.0")
+                    .update({"status_anterior_cidadao": None})
+                    .eq("numero_reg", novo_valor)
+                )
                 try:
                     query_reset = query_reset.eq("chat_id", int(chat_id))
                 except (ValueError, TypeError):
@@ -348,18 +360,21 @@ async def iniciar_excluir(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             teclado.append([InlineKeyboardButton(rotulo, callback_data=f"excl_reg_{num_reg}")])
 
         teclado.append([InlineKeyboardButton("❌ Cancelar", callback_data="cancelar_excl")])
-        
+
         msg = "⚠️ <b>Selecione qual regulação deseja excluir permanentemente:</b>"
         if update.message:
             await update.message.reply_text(msg, reply_markup=InlineKeyboardMarkup(teclado), parse_mode="HTML")
         elif update.callback_query:
-            await update.callback_query.message.reply_text(msg, reply_markup=InlineKeyboardMarkup(teclado), parse_mode="HTML")
+            await update.callback_query.message.reply_text(
+                msg, reply_markup=InlineKeyboardMarkup(teclado), parse_mode="HTML"
+            )
         context.user_data["_fluxo_excluir_ativo"] = True
         return SELECIONAR_REGULACAO_EXCLUIR
     except Exception as e:
         logger.error(f"Erro em iniciar_excluir: {e}")
         context.user_data.pop("_fluxo_excluir_ativo", None)
         return ConversationHandler.END
+
 
 async def selecionar_regulacao_excluir_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     query = update.callback_query
@@ -377,17 +392,18 @@ async def selecionar_regulacao_excluir_callback(update: Update, context: Context
 
         teclado = [
             [InlineKeyboardButton("✅ Sim, quero excluir", callback_data="conf_excl_sim")],
-            [InlineKeyboardButton("❌ Não, cancelar", callback_data="cancelar_excl")]
+            [InlineKeyboardButton("❌ Não, cancelar", callback_data="cancelar_excl")],
         ]
 
         await query.edit_message_text(
             f"⚠️ Tem certeza que deseja excluir a regulação <b>{num_reg}</b>?",
             reply_markup=InlineKeyboardMarkup(teclado),
-            parse_mode="HTML"
+            parse_mode="HTML",
         )
         return CONFIRMAR_EXCLUSAO
 
     return SELECIONAR_REGULACAO_EXCLUIR
+
 
 async def confirmar_exclusao_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     query = update.callback_query

@@ -1,5 +1,6 @@
 # handler_autorizacao.py
 """Comandos admin para gerenciar acesso do Cidadão."""
+
 import logging
 from telegram import Update
 from telegram.ext import ContextTypes

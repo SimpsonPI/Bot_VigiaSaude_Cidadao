@@ -111,12 +111,10 @@ async def cancelar_operacao(update: Update, context: ContextTypes.DEFAULT_TYPE) 
         await update.callback_query.answer()
         await update.callback_query.edit_message_text("❌ Operação cancelada.")
     elif update.message:
-        await update.message.reply_text(
-            "❌ Operação cancelada.", reply_markup=obter_menu_principal()
-        )
+        await update.message.reply_text("❌ Operação cancelada.", reply_markup=obter_menu_principal())
 
     context.user_data.clear()
-    context.user_data.pop("_em_fluxo_admin", None)   # ← ADICIONE
+    context.user_data.pop("_em_fluxo_admin", None)  # ← ADICIONE
     return ConversationHandler.END
 
 
@@ -141,21 +139,15 @@ async def callback_faq_suporte(update: Update, context: ContextTypes.DEFAULT_TYP
         "Caso tenha problemas técnicos, envie uma mensagem diretamente para nossa equipe de atendimento."
     )
 
-    teclado_volta = InlineKeyboardMarkup(
-        [[InlineKeyboardButton("⬅️ Voltar", callback_data="privacidade_voltar")]]
-    )
+    teclado_volta = InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Voltar", callback_data="privacidade_voltar")]])
 
     try:
-        await query.edit_message_text(
-            faq_texto, parse_mode="HTML", reply_markup=teclado_volta
-        )
+        await query.edit_message_text(faq_texto, parse_mode="HTML", reply_markup=teclado_volta)
     except Exception as e:
         logger.error(f"Erro ao exibir FAQ: {e}")
 
 
-async def callback_privacidade_voltar(
-    update: Update, context: ContextTypes.DEFAULT_TYPE
-):
+async def callback_privacidade_voltar(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Retorna para a tela inicial de privacidade."""
     query = update.callback_query
     await query.answer()
@@ -169,20 +161,14 @@ async def callback_privacidade_voltar(
                     callback_data="abrir_termo_privacidade",
                 )
             ],
-            [
-                InlineKeyboardButton(
-                    "💬 Dúvidas / Suporte (FAQ)", callback_data="abrir_faq_suporte"
-                )
-            ],
+            [InlineKeyboardButton("💬 Dúvidas / Suporte (FAQ)", callback_data="abrir_faq_suporte")],
         ]
     )
 
     await query.edit_message_text(texto, reply_markup=teclado)
 
 
-async def callback_abrir_termo_privacidade(
-    update: Update, context: ContextTypes.DEFAULT_TYPE
-):
+async def callback_abrir_termo_privacidade(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Envia o link da Política de Privacidade e Termos de Uso."""
     query = update.callback_query
     await query.answer()
@@ -193,9 +179,7 @@ async def callback_abrir_termo_privacidade(
         f'👉 <a href="{URL_TERMO_LGPD}">Abrir Política de Privacidade</a>'
     )
 
-    await query.message.reply_text(
-        texto, parse_mode="HTML", disable_web_page_preview=False
-    )
+    await query.message.reply_text(texto, parse_mode="HTML", disable_web_page_preview=False)
 
 
 # --- HANDLER DO COMANDO /START E /INICIAR ---
@@ -258,17 +242,11 @@ async def obter_menu_planos(user_id: int) -> InlineKeyboardMarkup:
     ja_usou_degustacao = False
     try:
         res = (
-            supabase.table("assinaturas")
-            .select("usou_degustacao", "tipo_plano")
-            .eq("chat_id", str(user_id))
-            .execute()
+            supabase.table("assinaturas").select("usou_degustacao", "tipo_plano").eq("chat_id", str(user_id)).execute()
         )
         if res.data:
             for row in res.data:
-                if (
-                    row.get("usou_degustacao") is True
-                    or row.get("tipo_plano") == "degustacao"
-                ):
+                if row.get("usou_degustacao") is True or row.get("tipo_plano") == "degustacao":
                     ja_usou_degustacao = True
                     break
     except Exception as e:
@@ -285,22 +263,9 @@ async def obter_menu_planos(user_id: int) -> InlineKeyboardMarkup:
                 )
             ]
         )
-    keyboard.append(
-        [
-            InlineKeyboardButton(
-            )
-        ]
-    )
-    keyboard.append(
-        [
-            InlineKeyboardButton(
-                "🚀 Plano Semestral (R$ 14,99)", callback_data="plano_semestral"
-            )
-        ]
-    )
-    keyboard.append([
-    InlineKeyboardButton("🤖 Central de Atendimento", url="https://t.me/central_vigiasaude_bot")
-])
+    keyboard.append([InlineKeyboardButton()])
+    keyboard.append([InlineKeyboardButton("🚀 Plano Semestral (R$ 14,99)", callback_data="plano_semestral")])
+    keyboard.append([InlineKeyboardButton("🤖 Central de Atendimento", url="https://t.me/central_vigiasaude_bot")])
     return InlineKeyboardMarkup(keyboard)
 
 
@@ -310,13 +275,7 @@ def usuario_tem_acesso(plano_info: dict) -> bool:
     usou_degustacao = plano_info.get("usou_degustacao", False)
     is_cortesia = tipo_plano == "cortesia"
     is_degustacao = tipo_plano == "degustacao"
-    return (
-        is_cortesia
-        or (is_degustacao and (usou_degustacao or status_bruto == "ativo"))
-        or (status_bruto == "ativo")
-    )
-
-
+    return is_cortesia or (is_degustacao and (usou_degustacao or status_bruto == "ativo")) or (status_bruto == "ativo")
 
 
 def verificar_plano_ativo(user_id: int) -> tuple[bool, dict]:
@@ -329,27 +288,25 @@ def verificar_plano_ativo(user_id: int) -> tuple[bool, dict]:
 
 async def enviar_alerta_plano_expirado(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Envia mensagem acolhedora informando que o plano expirou."""
-    teclado = InlineKeyboardMarkup([
-        [InlineKeyboardButton("❓ Tirar dúvidas", callback_data="atendimento_faq")],
-        [InlineKeyboardButton("👤 Falar com Atendente", callback_data="atendimento_humanizado")],
-    ])
+    teclado = InlineKeyboardMarkup(
+        [
+            [InlineKeyboardButton("❓ Tirar dúvidas", callback_data="atendimento_faq")],
+            [InlineKeyboardButton("👤 Falar com Atendente", callback_data="atendimento_humanizado")],
+        ]
+    )
 
     texto = (
         "🕊️ <b>Olá! Sentimos sua falta por aqui...</b>\n\n"
         "Percebemos que seu plano do <b>VigiaSaúde</b> chegou ao fim, "
         "mas não se preocupe — é rapidinho para reativar! 💙\n\n"
-
         "🌟 <b>O que você perde quando o plano expira:</b>\n"
         "• 🔕 <b>Sem alertas automáticos</b> — você não será mais avisado quando sua regulação mudar de status\n"
         "• 📊 <b>Sem consultas rápidas</b> — o status das suas regulações fica indisponível\n"
         "• 🏥 <b>Sem monitoramento contínuo</b> — você pode perder prazos importantes\n\n"
-
         "💚 <b>Reative agora e continue no controle:</b>\n"
         "• ⭐ <b>Trimestral</b> — R$ 9,99 (3 meses)\n"
         "• 🚀 <b>Semestral</b> — R$ 14,99 (6 meses)\n\n"
-
         "🎁 <i>Renovação em menos de 1 minuto, direto pelo Pix.</i>\n\n"
-
     )
 
     if update.callback_query:
@@ -361,6 +318,7 @@ async def enviar_alerta_plano_expirado(update: Update, context: ContextTypes.DEF
     elif update.message:
         await update.message.reply_text(texto, parse_mode="HTML", reply_markup=teclado)
 
+
 async def comando_privacidade(update: Update, context: ContextTypes.DEFAULT_TYPE):
     teclado = InlineKeyboardMarkup(
         [
@@ -370,11 +328,7 @@ async def comando_privacidade(update: Update, context: ContextTypes.DEFAULT_TYPE
                     callback_data="abrir_termo_privacidade",
                 )
             ],
-            [
-                InlineKeyboardButton(
-                    "💬 Dúvidas / Suporte (FAQ)", callback_data="abrir_faq_suporte"
-                )
-            ],
+            [InlineKeyboardButton("💬 Dúvidas / Suporte (FAQ)", callback_data="abrir_faq_suporte")],
         ]
     )
     texto = "Clique no botão abaixo para ler a nossa Política de Privacidade e Termos de Uso:"
@@ -398,22 +352,14 @@ async def comando_ajuda(update: Update, context: ContextTypes.DEFAULT_TYPE):
         [InlineKeyboardButton("🔍 Como rastrear?", callback_data="faq_rastrear")],
         [InlineKeyboardButton("🔒 Segurança de Dados", callback_data="faq_seguranca")],
         [InlineKeyboardButton("✏️ Como corrigir dados", callback_data="faq_corrigir")],
-        [
-            InlineKeyboardButton(
-                "💬 Falar com Suporte", callback_data="abrir_faq_suporte"
-            )
-        ],
+        [InlineKeyboardButton("💬 Falar com Suporte", callback_data="abrir_faq_suporte")],
     ]
     reply_markup = InlineKeyboardMarkup(teclado)
 
     if update.message:
-        await update.message.reply_text(
-            texto, reply_markup=reply_markup, parse_mode="Markdown"
-        )
+        await update.message.reply_text(texto, reply_markup=reply_markup, parse_mode="Markdown")
     elif update.callback_query:
-        await update.callback_query.message.edit_text(
-            texto, reply_markup=reply_markup, parse_mode="Markdown"
-        )
+        await update.callback_query.message.edit_text(texto, reply_markup=reply_markup, parse_mode="Markdown")
 
 
 async def comando_suporte(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -448,24 +394,16 @@ async def comando_suporte(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 InlineKeyboardButton("4️⃣ Alterar Dados", callback_data="faq_alterar"),
             ],
             [
-                    InlineKeyboardButton(
-                    "6️⃣ Vínculo Governo", callback_data="faq_governo"
-                ),
+                InlineKeyboardButton("6️⃣ Vínculo Governo", callback_data="faq_governo"),
             ],
-            [
-                InlineKeyboardButton(
-                    "⬅️ Voltar ao Menu Principal", callback_data="iniciar"
-                )
-            ],
+            [InlineKeyboardButton("⬅️ Voltar ao Menu Principal", callback_data="iniciar")],
         ]
     )
 
     if update.message:
         await update.message.reply_text(texto, reply_markup=teclado, parse_mode="HTML")
     elif update.callback_query:
-        await update.callback_query.message.edit_text(
-            texto, reply_markup=teclado, parse_mode="HTML"
-        )
+        await update.callback_query.message.edit_text(texto, reply_markup=teclado, parse_mode="HTML")
 
 
 async def voltar_ajuda(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -477,9 +415,7 @@ async def faq_o_que_e(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     texto = "💡 <b>O que é o VigiaSaude Cidadao?</b>\n\nÉ uma ferramenta independente desenvolvida para facilitar o acompanhamento de status de solicitações de regulação junto aos sistemas públicos de saúde."
-    teclado = InlineKeyboardMarkup(
-        [[InlineKeyboardButton("🔙 Voltar", callback_data="ajuda")]]
-    )
+    teclado = InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Voltar", callback_data="ajuda")]])
     await query.edit_message_text(texto, parse_mode="HTML", reply_markup=teclado)
 
 
@@ -492,9 +428,7 @@ async def faq_rastrear(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "Depois, você pode usar a opção <b>'Verificar Específico'</b> para selecionar uma regulação cadastrada e checar o status, "
         "ou <b>'Verificar Todas'</b> para checar todas as suas regulações de uma só vez de forma automática."
     )
-    teclado = InlineKeyboardMarkup(
-        [[InlineKeyboardButton("🔙 Voltar", callback_data="ajuda")]]
-    )
+    teclado = InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Voltar", callback_data="ajuda")]])
     await query.edit_message_text(texto, parse_mode="HTML", reply_markup=teclado)
 
 
@@ -502,9 +436,7 @@ async def faq_seguranca(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     texto = "🔒 <b>Meus dados estão seguros?</b>\n\nSim! Informações sensíveis são tratadas com privacidade estrita seguindo a LGPD."
-    teclado = InlineKeyboardMarkup(
-        [[InlineKeyboardButton("🔙 Voltar", callback_data="ajuda")]]
-    )
+    teclado = InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Voltar", callback_data="ajuda")]])
     await query.edit_message_text(texto, parse_mode="HTML", reply_markup=teclado)
 
 
@@ -512,9 +444,7 @@ async def faq_corrigir(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     texto = "✏️ <b>Como corrigir dados?</b>\n\nUtilize o comando de correção no menu principal para atualizar informações cadastrais ou Especialidade (Especialidade)."
-    teclado = InlineKeyboardMarkup(
-        [[InlineKeyboardButton("🔙 Voltar", callback_data="ajuda")]]
-    )
+    teclado = InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Voltar", callback_data="ajuda")]])
     await query.edit_message_text(texto, parse_mode="HTML", reply_markup=teclado)
 
 
@@ -568,6 +498,7 @@ async def executar_varredura_automatica(context: ContextTypes.DEFAULT_TYPE):
     # ═══════════════════════════════════════════════════════════
     try:
         from database import supabase as sb_check
+
         res_check = sb_check.table("config_sistema").select("valor").eq("chave", "ultima_varredura_cidadao").execute()
         if res_check.data:
             ultima_str = res_check.data[0]["valor"]
@@ -575,7 +506,7 @@ async def executar_varredura_automatica(context: ContextTypes.DEFAULT_TYPE):
             diff_seg = (datetime.now(timezone.utc) - ultima).total_seconds()
             if diff_seg < 6 * 3600 - 60:  # margem de 60s
                 logger.info(
-                    f"⏭️ Varredura ignorada: última rodou há {diff_seg/60:.0f} min "
+                    f"⏭️ Varredura ignorada: última rodou há {diff_seg / 60:.0f} min "
                     f"(<6h). Reinício não vai duplicar notificações."
                 )
                 return
@@ -585,10 +516,13 @@ async def executar_varredura_automatica(context: ContextTypes.DEFAULT_TYPE):
     # Registra que a varredura vai rodar AGORA
     try:
         from database import supabase as sb_save
-        sb_save.table("config_sistema").upsert({
-            "chave": "ultima_varredura_cidadao",
-            "valor": datetime.now(timezone.utc).isoformat(),
-        }).execute()
+
+        sb_save.table("config_sistema").upsert(
+            {
+                "chave": "ultima_varredura_cidadao",
+                "valor": datetime.now(timezone.utc).isoformat(),
+            }
+        ).execute()
     except Exception as e:
         logger.warning(f"Erro ao salvar timestamp da varredura: {e}")
 
@@ -658,14 +592,15 @@ async def executar_varredura_automatica(context: ContextTypes.DEFAULT_TYPE):
             # Atualiza status no banco (para os dois casos)
             try:
                 from database import supabase as sb
+
                 status_novo = (resultado_fms.get("situacao") or "").strip()
                 posicao_nova = (resultado_fms.get("posicao_fila") or "").strip()
-                sb.table("AlertaSUS_2.0").update({
-                    "status_anterior_cidadao": status_novo,
-                    "posicao_anterior": posicao_nova,
-                }).eq("numero_reg", str(num_reg)).eq(
-                    "chat_id", str(chat_id)
-                ).execute()
+                sb.table("AlertaSUS_2.0").update(
+                    {
+                        "status_anterior_cidadao": status_novo,
+                        "posicao_anterior": posicao_nova,
+                    }
+                ).eq("numero_reg", str(num_reg)).eq("chat_id", str(chat_id)).execute()
             except Exception as e:
                 logger.error(f"Erro ao salvar no banco: {e}")
 
@@ -708,12 +643,14 @@ async def executar_varredura_automatica(context: ContextTypes.DEFAULT_TYPE):
             else:
                 # 🔒 Usuário expirado → acumula teaser
                 logger.info(f"🎁 {num_reg} (chat {chat_id}): acumulando para teaser")
-                mudancas_por_usuario.setdefault(str(chat_id), []).append({
-                    "num_reg": num_reg,
-                    "resultado": resultado_fms,
-                    "reg_db": reg,
-                    "motivo": motivo,
-                })
+                mudancas_por_usuario.setdefault(str(chat_id), []).append(
+                    {
+                        "num_reg": num_reg,
+                        "resultado": resultado_fms,
+                        "reg_db": reg,
+                        "motivo": motivo,
+                    }
+                )
 
             await asyncio.sleep(0.5)
 
@@ -725,9 +662,16 @@ async def executar_varredura_automatica(context: ContextTypes.DEFAULT_TYPE):
 
             try:
                 msg = _montar_msg_teaser(mudancas)
-                teclado = InlineKeyboardMarkup([
-                    [InlineKeyboardButton("🔕 Não quero receber mais", callback_data="optout_teaser")],
-                ])
+                teclado = InlineKeyboardMarkup(
+                    [
+                        [
+                            InlineKeyboardButton(
+                                "🔕 Não quero receber mais",
+                                callback_data="optout_teaser",
+                            )
+                        ],
+                    ]
+                )
                 await context.bot.send_message(
                     chat_id=chat_id,
                     text=msg,
@@ -750,6 +694,7 @@ async def executar_varredura_automatica(context: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         logger.error(f"Erro na varredura automática: {e}")
 
+
 def _montar_msg_fila_simples(num_reg: str, resultado: dict, reg_db: dict) -> str:
     """Mensagem simples apenas avisando que a posição na fila mudou."""
     num_esc = escape(str(num_reg))
@@ -769,6 +714,7 @@ def _montar_msg_fila_simples(num_reg: str, resultado: dict, reg_db: dict) -> str
         f"<i>Você continua na fila. Assim que houver uma mudança de status, "
         f"avisaremos com mais detalhes.</i>"
     )
+
 
 def _montar_msg_teaser(mudancas: list) -> str:
     """
@@ -837,6 +783,7 @@ async def configurar_menu_comandos(app):
     ]
     await app.bot.set_my_commands(comandos)
 
+
 async def sair_consulta_por_texto(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Sai do fluxo de consulta quando o usuário digita algo que não é número."""
     await update.message.reply_text(
@@ -848,33 +795,25 @@ async def sair_consulta_por_texto(update: Update, context: ContextTypes.DEFAULT_
     context.user_data.clear()
     return ConversationHandler.END
 
+
 # --- CONVERSATION HANDLERS ---
 conv_consulta_especifica = ConversationHandler(
     entry_points=[
         CommandHandler("consultar", iniciar_verificar_especifico),
         CommandHandler("verificar_especifico", iniciar_verificar_especifico),
-        CallbackQueryHandler(
-            iniciar_verificar_especifico, pattern="^verificar_especifico$"
-        ),
+        CallbackQueryHandler(iniciar_verificar_especifico, pattern="^verificar_especifico$"),
         # ✅ NOVO: reentra no estado se o usuário clicar no botão depois de reiniciar o bot
-        CallbackQueryHandler(
-            processar_verificar_especifico, pattern="^ver_esp_"
-        ),
+        CallbackQueryHandler(processar_verificar_especifico, pattern="^ver_esp_"),
     ],
-                    states={
+    states={
         CONSULTAR_ID: [
             CallbackQueryHandler(processar_verificar_especifico, pattern="^ver_esp_"),
-            MessageHandler(
-                filters.Regex(r"^\d{1,8}$"), processar_verificar_especifico
-            ),
+            MessageHandler(filters.Regex(r"^\d{1,8}$"), processar_verificar_especifico),
         ]
     },
     fallbacks=[
         CommandHandler("cancelar", cancelar_operacao),
-        MessageHandler(
-            filters.TEXT & ~filters.COMMAND,
-            sair_consulta_por_texto
-        ),
+        MessageHandler(filters.TEXT & ~filters.COMMAND, sair_consulta_por_texto),
     ],
     per_message=False,
 )
@@ -885,15 +824,11 @@ conv_cadastro = ConversationHandler(
         CommandHandler("cadastrar_nova", iniciar_cadastro_manual),
         CallbackQueryHandler(iniciar_cadastro_manual, pattern="^cadastrar_nova$"),
     ],
-        states={
-        ETAPA_ESCOLHER_SUS: [
-            CallbackQueryHandler(callback_escolher_sus, pattern="^(usar_sus_|novo_sus)")
-        ],
+    states={
+        ETAPA_ESCOLHER_SUS: [CallbackQueryHandler(callback_escolher_sus, pattern="^(usar_sus_|novo_sus)")],
         ETAPA_SUS: [MessageHandler(filters.TEXT & ~filters.COMMAND, receber_sus)],
-        ETAPA_CONFIRMAR_REUSO: [          # ← NOVO BLOCO
-            CallbackQueryHandler(
-                callback_reuso_dados, pattern="^reuso_(sim|nao)$"
-            ),
+        ETAPA_CONFIRMAR_REUSO: [  # ← NOVO BLOCO
+            CallbackQueryHandler(callback_reuso_dados, pattern="^reuso_(sim|nao)$"),
         ],
         ETAPA_NOME: [MessageHandler(filters.TEXT & ~filters.COMMAND, receber_nome)],
         ETAPA_CELULAR: [MessageHandler(filters.TEXT & ~filters.COMMAND, receber_celular)],
@@ -914,9 +849,7 @@ conv_corrigir = ConversationHandler(
     ],
     states={
         SELECIONAR_REGULACAO: [
-            CallbackQueryHandler(
-                selecionar_regulacao_callback, pattern="^(corr_reg_|cancelar_corr)"
-            )
+            CallbackQueryHandler(selecionar_regulacao_callback, pattern="^(corr_reg_|cancelar_corr)")
         ],
         SELECIONAR_CAMPO: [
             CallbackQueryHandler(
@@ -924,9 +857,7 @@ conv_corrigir = ConversationHandler(
                 pattern="^(form_edit_|form_salvar_|corr_campo_|cancelar_corr)",
             )
         ],
-        AGUARDAR_NOVO_VALOR: [
-            MessageHandler(filters.TEXT & ~filters.COMMAND, salvar_novo_valor)
-        ],
+        AGUARDAR_NOVO_VALOR: [MessageHandler(filters.TEXT & ~filters.COMMAND, salvar_novo_valor)],
     },
     fallbacks=[CommandHandler("cancelar", cancelar_operacao)],
     per_message=False,
@@ -945,9 +876,7 @@ conv_excluir = ConversationHandler(
             )
         ],
         CONFIRMAR_EXCLUSAO: [
-            CallbackQueryHandler(
-                confirmar_exclusao_callback, pattern="^(conf_excl_sim|cancelar_excl)"
-            )
+            CallbackQueryHandler(confirmar_exclusao_callback, pattern="^(conf_excl_sim|cancelar_excl)")
         ],
     },
     fallbacks=[CommandHandler("cancelar", cancelar_operacao)],
@@ -993,24 +922,18 @@ if not ATENDIMENTO_IMPORTADO:
 
     async def menu_atendimento(update, context):
         if update.message:
-            await update.message.reply_text(
-                "🤖 Central de Atendimento em manutenção. Tente novamente mais tarde."
-            )
+            await update.message.reply_text("🤖 Central de Atendimento em manutenção. Tente novamente mais tarde.")
 
     async def iniciar_faq(update, context):
         if update.message:
-            await update.message.reply_text(
-                "❓ FAQ em manutenção. Tente novamente mais tarde."
-            )
+            await update.message.reply_text("❓ FAQ em manutenção. Tente novamente mais tarde.")
 
     async def processar_pergunta_faq(update, context):
         return
 
     async def iniciar_atendimento_humanizado(update, context):
         if update.message:
-            await update.message.reply_text(
-                "👤 Atendimento humanizado em manutenção. Tente novamente mais tarde."
-            )
+            await update.message.reply_text("👤 Atendimento humanizado em manutenção. Tente novamente mais tarde.")
         return 1
 
     async def processar_mensagem_humanizado(update, context):
@@ -1035,17 +958,11 @@ AGUARDANDO_MENSAGEM_CHAMADO = 1
 # --- NOVO CONVERSATION HANDLER PARA ATENDIMENTO HUMANIZADO ---
 conv_atendimento_humanizado = ConversationHandler(
     entry_points=[
-        CallbackQueryHandler(
-            iniciar_atendimento_humanizado, pattern="^atendimento_humanizado$"
-        ),
+        CallbackQueryHandler(iniciar_atendimento_humanizado, pattern="^atendimento_humanizado$"),
         CommandHandler("atendimento_humanizado", iniciar_atendimento_humanizado),
     ],
     states={
-        AGUARDANDO_MENSAGEM_CHAMADO: [
-            MessageHandler(
-                filters.TEXT & ~filters.COMMAND, processar_mensagem_humanizado
-            )
-        ],
+        AGUARDANDO_MENSAGEM_CHAMADO: [MessageHandler(filters.TEXT & ~filters.COMMAND, processar_mensagem_humanizado)],
     },
     fallbacks=[
         CommandHandler("cancelar", cancelar_atendimento),
@@ -1069,9 +986,7 @@ async def faq_cadastrar(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "• Digite o número do seu <b>Cartão SUS</b> (15 dígitos) e o <b>ID da Regulação</b>.\n"
         "• Siga as instruções na tela até a confirmação do cadastro."
     )
-    teclado = InlineKeyboardMarkup(
-        [[InlineKeyboardButton("⬅️ Voltar", callback_data="suporte")]]
-    )
+    teclado = InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Voltar", callback_data="suporte")]])
     await query.edit_message_text(texto, parse_mode="HTML", reply_markup=teclado)
 
 
@@ -1084,9 +999,7 @@ async def faq_consultar(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "• Para ver todas as suas regulações: digite <b>/verificar_todos</b>.\n"
         "• Para consultar uma regulação específica: digite <b>/verificar_especifico</b>."
     )
-    teclado = InlineKeyboardMarkup(
-        [[InlineKeyboardButton("⬅️ Voltar", callback_data="suporte")]]
-    )
+    teclado = InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Voltar", callback_data="suporte")]])
     await query.edit_message_text(texto, parse_mode="HTML", reply_markup=teclado)
 
 
@@ -1099,9 +1012,7 @@ async def faq_id(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "• <b>Cartão SUS:</b> O número possui 15 dígitos e pode ser encontrado no seu cartão impresso ou no aplicativo 'Meu SUS Digital'.\n"
         "• <b>ID da Regulação:</b> É o código fornecido pelo posto de saúde ou hospital no momento da solicitação."
     )
-    teclado = InlineKeyboardMarkup(
-        [[InlineKeyboardButton("⬅️ Voltar", callback_data="suporte")]]
-    )
+    teclado = InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Voltar", callback_data="suporte")]])
     await query.edit_message_text(texto, parse_mode="HTML", reply_markup=teclado)
 
 
@@ -1113,9 +1024,7 @@ async def faq_alterar(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "✏️ <b>Como alterar ou corrigir dados?</b>\n\n"
         "• Para alterar informações de uma regulação já cadastrada, utilize o comando <b>/corrigir</b> no menu principal."
     )
-    teclado = InlineKeyboardMarkup(
-        [[InlineKeyboardButton("⬅️ Voltar", callback_data="suporte")]]
-    )
+    teclado = InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Voltar", callback_data="suporte")]])
     await query.edit_message_text(texto, parse_mode="HTML", reply_markup=teclado)
 
 
@@ -1141,10 +1050,9 @@ async def faq_governo(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "Não. O VigiaSaude Cidadao é uma ferramenta <b>independente</b> e não possui vínculo oficial com a Prefeitura de Teresina, FMS ou SUS.\n"
         "As informações são baseadas nos dados públicos dos portais de regulação."
     )
-    teclado = InlineKeyboardMarkup(
-        [[InlineKeyboardButton("⬅️ Voltar", callback_data="suporte")]]
-    )
+    teclado = InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Voltar", callback_data="suporte")]])
     await query.edit_message_text(texto, parse_mode="HTML", reply_markup=teclado)
+
 
 async def callback_optout_teaser(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Usuário clicou em 'Não quero receber mais'."""
@@ -1162,9 +1070,9 @@ async def callback_optout_teaser(update: Update, context: ContextTypes.DEFAULT_T
             "✅ <b>Pronto! Você voltará a receber os alertas de atualização.</b>\n\n"
             "Se mudar de ideia novamente, é só tocar no botão abaixo."
         )
-        teclado = InlineKeyboardMarkup([
-            [InlineKeyboardButton("🔕 Não quero receber mais", callback_data="optout_teaser")]
-        ])
+        teclado = InlineKeyboardMarkup(
+            [[InlineKeyboardButton("🔕 Não quero receber mais", callback_data="optout_teaser")]]
+        )
     else:
         # Ativa opt-out
         ativar_optout(chat_id)
@@ -1175,9 +1083,9 @@ async def callback_optout_teaser(update: Update, context: ContextTypes.DEFAULT_T
             "• Respostas do suporte\n\n"
             "Se quiser reativar os alertas, toque no botão abaixo."
         )
-        teclado = InlineKeyboardMarkup([
-            [InlineKeyboardButton("🔔 Quero receber novamente", callback_data="optout_teaser")]
-        ])
+        teclado = InlineKeyboardMarkup(
+            [[InlineKeyboardButton("🔔 Quero receber novamente", callback_data="optout_teaser")]]
+        )
 
     try:
         await query.edit_message_reply_markup(reply_markup=teclado)
@@ -1186,13 +1094,16 @@ async def callback_optout_teaser(update: Update, context: ContextTypes.DEFAULT_T
 
     await query.message.reply_text(texto, parse_mode="HTML", reply_markup=teclado)
 
+
 # ==========================================
 # MARKETING: OFERTA APÓS 1ª REGULAÇÃO
 # ==========================================
 
+
 async def enviar_oferta_primeira_regulacao(update: Update, context: ContextTypes.DEFAULT_TYPE, chat_id: str):
     """Institucional: sem planos nem cobrancas."""
     return
+
 
 def _obter_limite_plano(info: dict) -> int:
     """Obtém o limite de regulações do plano do usuário."""
@@ -1202,6 +1113,7 @@ def _obter_limite_plano(info: dict) -> int:
 
     try:
         from pagamento_polling import _limite_por_plano
+
         tipo = str(info.get("tipo_plano") or "").lower() if info else ""
         return _limite_por_plano(tipo)
     except Exception:
@@ -1216,6 +1128,7 @@ async def enviar_oferta_limite_atingido(
 ):
     """Institucional: sem planos nem cobrancas."""
     return
+
 
 async def enviar_alerta_expiracao(context, chat_id: str, tipo_plano: str, dias: int, data_venc: str):
     """Institucional: sem planos nem cobrancas."""

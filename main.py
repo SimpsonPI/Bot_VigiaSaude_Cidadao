@@ -1,4 +1,5 @@
 from dotenv import load_dotenv
+
 load_dotenv()
 
 # Só DEPOIS os outros imports
@@ -11,10 +12,11 @@ from handler_consultas import (
 )
 
 import logging
+
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     level=logging.INFO,
-    force=True
+    force=True,
 )
 
 logging.getLogger("httpx").setLevel(logging.WARNING)
@@ -128,24 +130,28 @@ async def erro_global_handler(update: object, context: ContextTypes.DEFAULT_TYPE
 async def post_init(app):
     """Executa tarefas após a inicialização do bot."""
     from menu_institucional import configurar_menu_institucional
+
     await configurar_menu_institucional(app)
 
     job_queue = app.job_queue
     if job_queue:
         # ✅ Varredura automática de regulações (6h)
         from handler import executar_varredura_automatica
+
         job_queue.run_repeating(
             executar_varredura_automatica,
-            interval=6 * 3600,   # 6 HORAS
-            first=180,           # primeira execução 3 min após o boot
+            interval=6 * 3600,  # 6 HORAS
+            first=180,  # primeira execução 3 min após o boot
         )
         logger.info("✅ Tarefas agendadas: varredura regulações (6h)")
 
         # Verifica enquetes expiradas a cada 1 minuto
         from handler_enquete_local import verificar_enquetes_expiradas
+
         job_queue.run_repeating(
             verificar_enquetes_expiradas,
-            interval=60, first=30,
+            interval=60,
+            first=30,
         )
         logger.info("✅ Tarefas agendadas: enquetes expiradas (60s)")
 
@@ -163,16 +169,9 @@ def main():
         pool_timeout=30.0,
     )
 
-    app = (
-        ApplicationBuilder()
-        .token(token)
-        .request(request)
-        .get_updates_request(request)
-        .post_init(post_init)
-        .build()
-    )
+    app = ApplicationBuilder().token(token).request(request).get_updates_request(request).post_init(post_init).build()
 
-        # ═══ MIDDLEWARE DE AUTORIZAÇÃO ═══
+    # ═══ MIDDLEWARE DE AUTORIZAÇÃO ═══
     async def verificar_acesso(update: Update, context: ContextTypes.DEFAULT_TYPE):
         user = update.effective_user
         if not user:
@@ -180,6 +179,7 @@ def main():
 
         # Admin sempre passa
         from config import is_admin
+
         if is_admin(user.id):
             return
 
@@ -236,7 +236,7 @@ def main():
     # Comandos públicos
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("iniciar", start))
-    #app.add_handler(CommandHandler("menu", start))
+    # app.add_handler(CommandHandler("menu", start))
     app.add_handler(CommandHandler("cadastrar_nova", iniciar_cadastro_manual))
     app.add_handler(CommandHandler("verificar_todos", comando_verificar_todas))
     app.add_handler(CommandHandler("verificar_especifico", iniciar_verificar_especifico))
@@ -297,10 +297,7 @@ def main():
     # Callbacks de enquete (voto e admin)
     app.add_handler(CallbackQueryHandler(receber_voto, pattern="^voto_\\d+_\\d+$"))
     app.add_handler(CallbackQueryHandler(voto_ja_registrado, pattern="^voto_ja_registrado$"))
-    app.add_handler(CallbackQueryHandler(
-        callback_resultado,
-        pattern="^enq_(encerrar|reabrir|apagar|atualizar)_\\d+$"
-    ))
+    app.add_handler(CallbackQueryHandler(callback_resultado, pattern="^enq_(encerrar|reabrir|apagar|atualizar)_\\d+$"))
 
     # ─── Servidor HTTP auxiliar ───
     PORT = int(os.environ.get("PORT", "8080"))

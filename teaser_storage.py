@@ -3,6 +3,7 @@
 Controla o envio de teasers e opt-out para usuários com plano expirado.
 Armazena em um arquivo JSON local.
 """
+
 import json
 import os
 import logging

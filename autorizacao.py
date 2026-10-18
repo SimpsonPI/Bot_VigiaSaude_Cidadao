@@ -1,5 +1,6 @@
 # autorizacao.py
 """Controle de acesso privado do VigiaSaúde Cidadão."""
+
 import logging
 from database import supabase
 
@@ -9,12 +10,7 @@ logger = logging.getLogger(__name__)
 def verificar_autorizado(chat_id: int) -> bool:
     """Retorna True se o chat_id está na whitelist e ativo."""
     try:
-        res = (
-            supabase.table("autorizados_cidadao")
-            .select("chat_id, ativo")
-            .eq("chat_id", chat_id)
-            .execute()
-        )
+        res = supabase.table("autorizados_cidadao").select("chat_id, ativo").eq("chat_id", chat_id).execute()
         if not res.data:
             return False
         return bool(res.data[0].get("ativo"))
@@ -44,9 +40,7 @@ def autorizar(chat_id: int, nome: str, admin_id: int) -> bool:
 def desautorizar(chat_id: int) -> bool:
     """Marca como inativo (mantém histórico)."""
     try:
-        supabase.table("autorizados_cidadao").update(
-            {"ativo": False}
-        ).eq("chat_id", chat_id).execute()
+        supabase.table("autorizados_cidadao").update({"ativo": False}).eq("chat_id", chat_id).execute()
         return True
     except Exception as e:
         logger.error(f"Erro ao desautorizar {chat_id}: {e}")

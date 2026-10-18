@@ -1,4 +1,5 @@
 from dotenv import load_dotenv
+
 load_dotenv()
 
 import os
@@ -20,6 +21,7 @@ supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 # --- AUXILIARES DE PLANOS ---
 
+
 def calcular_dias_plano(tipo_plano: str) -> int:
     """Retorna a quantidade de dias de validade de um determinado plano."""
     plano_lower = tipo_plano.lower()
@@ -29,10 +31,10 @@ def calcular_dias_plano(tipo_plano: str) -> int:
         return 90
     elif "semestral" in plano_lower:
         return 180
-    
 
 
 # --- REGRAS E GESTÃO DE PLANOS E ASSINATURAS ---
+
 
 async def verificar_assinatura(user_id: int) -> dict | None:
     """Busca e retorna o registro completo da assinatura de um usuário no Supabase."""
@@ -56,7 +58,11 @@ def verificar_assinatura_ativa(user_id: int) -> bool:
 
         assinatura = res.data[0]
 
-        if str(assinatura.get("status", "")).lower() not in ("ativo", "active", "ativa"):
+        if str(assinatura.get("status", "")).lower() not in (
+            "ativo",
+            "active",
+            "ativa",
+        ):
             return False
 
         if assinatura.get("tipo_plano") == "cortesia":
@@ -100,14 +106,8 @@ def ativar_ou_atualizar_assinatura(telegram_id: int, tipo_plano: str):
                     venc_str = info.get("data_vencimento")
 
                     # Só soma se: status ativo, não é degustação e vencimento é futuro
-                    if (
-                        status_atual in ("ativo", "active", "ativa")
-                        and tipo_atual != "degustacao"
-                        and venc_str
-                    ):
-                        venc_dt = datetime.fromisoformat(
-                            str(venc_str).replace("Z", "+00:00")
-                        )
+                    if status_atual in ("ativo", "active", "ativa") and tipo_atual != "degustacao" and venc_str:
+                        venc_dt = datetime.fromisoformat(str(venc_str).replace("Z", "+00:00"))
                         if venc_dt > agora:
                             base = venc_dt  # usa o vencimento futuro
                             logger.info(
@@ -132,8 +132,7 @@ def ativar_ou_atualizar_assinatura(telegram_id: int, tipo_plano: str):
 
         resposta = supabase.table("assinaturas").upsert(dados, on_conflict="chat_id").execute()
         logger.info(
-            f"✅ Assinatura '{tipo_plano}' atualizada para {telegram_id} | "
-            f"Vence: {vencimento.strftime('%d/%m/%Y')}"
+            f"✅ Assinatura '{tipo_plano}' atualizada para {telegram_id} | " f"Vence: {vencimento.strftime('%d/%m/%Y')}"
         )
         return resposta.data if resposta else True
     except Exception as e:
@@ -146,16 +145,16 @@ async def iniciar_degustacao(chat_id: int) -> bool:
     try:
         agora = datetime.now(timezone.utc)
         vencimento = agora + timedelta(days=7)
-        
+
         dados = {
             "chat_id": str(chat_id),
             "tipo_plano": "degustacao",
             "status": "active",
             "usou_degustacao": True,
             "data_inicio": agora.isoformat(),
-            "data_vencimento": vencimento.isoformat()
+            "data_vencimento": vencimento.isoformat(),
         }
-        
+
         supabase.table("assinaturas").upsert(dados, on_conflict="chat_id").execute()
         logger.info(f"Degustação ativada com sucesso para o chat_id: {chat_id}")
         return True
@@ -163,8 +162,9 @@ async def iniciar_degustacao(chat_id: int) -> bool:
         logger.error(f"Erro ao iniciar degustação para o chat_id {chat_id}: {e}")
         return False
 
-    
+
 # --- FUNÇÕES DE OPERAÇÃO DE REGULAÇÕES E CADASTRO ---
+
 
 def buscar_todas_regulacoes_ativas():
     """Busca todas as regulações cadastradas ativas no Supabase para varredura."""
@@ -180,9 +180,9 @@ def buscar_regulacoes_por_chat_id(chat_id):
     """Busca as regulações de um usuário específico, testando tipos diferentes."""
     try:
         res = supabase.table("AlertaSUS_2.0").select("*").eq("chat_id", str(chat_id)).execute()
-        if res.data: 
+        if res.data:
             return res.data
-        
+
         res = supabase.table("AlertaSUS_2.0").select("*").eq("chat_id", int(chat_id)).execute()
         return res.data if res.data else []
     except Exception as e:
@@ -196,7 +196,7 @@ def obter_regulacao_por_numero(num_reg: str):
         res = supabase.table("AlertaSUS_2.0").select("*").eq("numero_reg", str(num_reg)).execute()
         if res.data:
             return res.data[0]
-        
+
         res_alt = supabase.table("AlertaSUS_2.0").select("*").eq("protocolo", str(num_reg)).execute()
         return res_alt.data[0] if res_alt and res_alt.data else None
     except Exception as e:
@@ -225,7 +225,7 @@ def registrar_consentimento_lgpd(dados_consentimento: dict):
 
 def atualizar_campo_regulacao(num_reg: str, campo: str, valor: str, chat_id: str = None):
     """Atualiza um determinado campo de uma regulação específica.
-    
+
     Se chat_id for passado, filtra por ele também (evita atualizar regulações
     compartilhadas de outros usuários).
     """
@@ -259,13 +259,19 @@ def desativar_regulacoes_por_chat_id(chat_id: int):
         logger.error(f"Erro ao desativar regulações do chat_id {chat_id}: {e}")
         return None
 
+
 def buscar_dados_por_sus(numero_sus: str):
     """Busca dados de cadastro de uma regulação anterior pelo número do SUS."""
     try:
         sus_limpo = str(numero_sus).strip()
-        res = supabase.table("AlertaSUS_2.0").select(
-            "nome_paciente, data_nascimento, celular, chat_id"
-        ).eq("numero_sus", sus_limpo).order("id", desc=True).limit(1).execute()
+        res = (
+            supabase.table("AlertaSUS_2.0")
+            .select("nome_paciente, data_nascimento, celular, chat_id")
+            .eq("numero_sus", sus_limpo)
+            .order("id", desc=True)
+            .limit(1)
+            .execute()
+        )
 
         if res.data:
             return res.data[0]

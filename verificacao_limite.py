@@ -65,9 +65,13 @@ def pode_verificar(chat_id: str, tipo: str) -> tuple[bool, str, int]:
     coluna = _nome_coluna(tipo)
 
     try:
-        res = supabase.table("verificacoes_usuarios").select(
-            f"{coluna}, ultima_verificacao"
-        ).eq("chat_id", str(chat_id)).eq("data", hoje).execute()
+        res = (
+            supabase.table("verificacoes_usuarios")
+            .select(f"{coluna}, ultima_verificacao")
+            .eq("chat_id", str(chat_id))
+            .eq("data", hoje)
+            .execute()
+        )
 
         usadas = 0
         ultima = None
@@ -104,24 +108,31 @@ def registrar_verificacao(chat_id: str, tipo: str):
     """Incrementa o contador de verificações do usuário."""
     registrar_janela_curta(chat_id, tipo)
     from database import supabase
+
     # ... resto igual ...
     hoje = _hoje_brasilia()
     agora = datetime.now(timezone.utc).isoformat()
 
-    coluna = _nome_coluna(tipo)   # ← CORRIGIDO
+    coluna = _nome_coluna(tipo)  # ← CORRIGIDO
 
     try:
-        res = supabase.table("verificacoes_usuarios").select(
-            f"id, {coluna}"
-        ).eq("chat_id", str(chat_id)).eq("data", hoje).execute()
+        res = (
+            supabase.table("verificacoes_usuarios")
+            .select(f"id, {coluna}")
+            .eq("chat_id", str(chat_id))
+            .eq("data", hoje)
+            .execute()
+        )
 
         if res.data:
             atual = res.data[0].get(coluna, 0)
-            supabase.table("verificacoes_usuarios").update({
-                coluna: atual + 1,
-                "ultima_verificacao": agora,
-                "updated_at": agora,
-            }).eq("id", res.data[0]["id"]).execute()
+            supabase.table("verificacoes_usuarios").update(
+                {
+                    coluna: atual + 1,
+                    "ultima_verificacao": agora,
+                    "updated_at": agora,
+                }
+            ).eq("id", res.data[0]["id"]).execute()
         else:
             dados = {
                 "chat_id": str(chat_id),
@@ -135,6 +146,7 @@ def registrar_verificacao(chat_id: str, tipo: str):
 
     except Exception as e:
         logger.error(f"Erro ao registrar verificação: {e}")
+
 
 def restantes_reais(chat_id: str, tipo: str) -> int:
     """
@@ -151,9 +163,13 @@ def restantes_reais(chat_id: str, tipo: str) -> int:
     coluna = _nome_coluna(tipo)
 
     try:
-        res = supabase.table("verificacoes_usuarios").select(coluna).eq(
-            "chat_id", str(chat_id)
-        ).eq("data", hoje).execute()
+        res = (
+            supabase.table("verificacoes_usuarios")
+            .select(coluna)
+            .eq("chat_id", str(chat_id))
+            .eq("data", hoje)
+            .execute()
+        )
 
         usadas = 0
         if res.data:
@@ -164,6 +180,7 @@ def restantes_reais(chat_id: str, tipo: str) -> int:
         logger.error(f"Erro ao contar restantes: {e}")
         return limite
 
+
 # ═══════════════════════════════════════════════
 # CAMADA 2 — ANTI-RAJADA (janela curta por usuário)
 # ═══════════════════════════════════════════════
@@ -173,7 +190,7 @@ import time as _time
 _JANELA_CURTA = defaultdict(deque)
 
 LIMITES_JANELA_CURTA = {
-    "todas":      {"max": 2, "janela_seg": 60},
+    "todas": {"max": 2, "janela_seg": 60},
     "especifico": {"max": 3, "janela_seg": 60},
 }
 LIMITE_JANELA_GERAL = {"max": 5, "janela_seg": 60}

@@ -2,6 +2,7 @@
 Gerenciador de processo do bot VigiaSaude Cidadão.
 Uso: python servidor.py [start|stop|restart|status]
 """
+
 import os
 import sys
 import signal
@@ -14,9 +15,7 @@ BASE_DIR = Path(__file__).resolve().parent
 if sys.platform == "win32":
     _PYTHONW = BASE_DIR / ".venv" / "Scripts" / "pythonw.exe"
     _PYTHON = BASE_DIR / ".venv" / "Scripts" / "python.exe"
-    PYTHON = str(_PYTHONW) if _PYTHONW.exists() else (
-        str(_PYTHON) if _PYTHON.exists() else sys.executable
-    )
+    PYTHON = str(_PYTHONW) if _PYTHONW.exists() else (str(_PYTHON) if _PYTHON.exists() else sys.executable)
 else:
     _PYTHON = BASE_DIR / ".venv" / "bin" / "python"
     PYTHON = str(_PYTHON) if _PYTHON.exists() else sys.executable

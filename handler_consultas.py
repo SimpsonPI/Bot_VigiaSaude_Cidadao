@@ -13,12 +13,15 @@ logger = logging.getLogger(__name__)
 
 CONSULTAR_ID = 1
 
-DISCLAIMER_TEXTO = "Serviço independente de monitoramento. Não possuímos vínculo oficial com a FMS ou Prefeitura de Teresina."
+DISCLAIMER_TEXTO = (
+    "Serviço independente de monitoramento. Não possuímos vínculo oficial com a FMS ou Prefeitura de Teresina."
+)
 
 
 # ═══════════════════════════════════════════════
 # FUNÇÕES AUXILIARES
 # ═══════════════════════════════════════════════
+
 
 def emoji_por_status(status: str | None) -> str:
     """Retorna o emoji correspondente ao status da regulação."""
@@ -61,7 +64,12 @@ def _mascarar_sus_custom(sus: str) -> str:
     return f"{s[:3]}{'*' * 5}{s[-3:]}"
 
 
-def _montar_msg_html(num_reg: str, resultado: dict, reg_db=None, titulo: str = "📋 <b>STATUS DA REGULAÇÃO</b>") -> str:
+def _montar_msg_html(
+    num_reg: str,
+    resultado: dict,
+    reg_db=None,
+    titulo: str = "📋 <b>STATUS DA REGULAÇÃO</b>",
+) -> str:
     cartao_sus_raw = ""
     nome_paciente_raw = ""
     cbo = "Não informado"
@@ -150,9 +158,11 @@ async def enviar_resposta(update: Update, texto: str, parse_mode="HTML", reply_m
 # COMANDO: VERIFICAR TODAS
 # ═══════════════════════════════════════════════
 
+
 async def comando_verificar_todas(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # 🔒 Bloqueio de plano expirado
     from handler import verificar_plano_ativo, enviar_alerta_plano_expirado
+
     user_id = update.effective_user.id
     ativo, info = verificar_plano_ativo(user_id)
     if not ativo:
@@ -161,6 +171,7 @@ async def comando_verificar_todas(update: Update, context: ContextTypes.DEFAULT_
 
     # 🆕 LIMITE DIÁRIO + INTERVALO
     from verificacao_limite import pode_verificar, registrar_verificacao
+
     chat_id = str(user_id)
     pode, motivo, restantes = pode_verificar(chat_id, "todas")
 
@@ -171,7 +182,7 @@ async def comando_verificar_todas(update: Update, context: ContextTypes.DEFAULT_
                 f"⏳ <b>Aguarde um pouco!</b>\n\n"
                 f"Você fez uma verificação há pouco tempo. "
                 f"Tente novamente em <b>{segundos} segundos</b>.",
-                parse_mode="HTML"
+                parse_mode="HTML",
             )
         else:
             await update.message.reply_text(
@@ -181,7 +192,7 @@ async def comando_verificar_todas(update: Update, context: ContextTypes.DEFAULT_
                 "• Use <b>/verificar_especifico</b> para checar 1 regulação\n"
                 "• O bot continua monitorando automaticamente a cada 6h 🕐\n"
                 "• Volte amanhã para mais 3 verificações completas",
-                parse_mode="HTML"
+                parse_mode="HTML",
             )
         return
 
@@ -195,9 +206,8 @@ async def comando_verificar_todas(update: Update, context: ContextTypes.DEFAULT_
 
     if not regulacoes:
         await update.message.reply_text(
-            "ℹ️ <b>Você não possui nenhuma regulação cadastrada.</b>\n"
-            "Use o menu para cadastrar.",
-            parse_mode="HTML"
+            "ℹ️ <b>Você não possui nenhuma regulação cadastrada.</b>\n" "Use o menu para cadastrar.",
+            parse_mode="HTML",
         )
         return
 
@@ -205,7 +215,7 @@ async def comando_verificar_todas(update: Update, context: ContextTypes.DEFAULT_
     registrar_verificacao(chat_id, "todas")
     # Define o alvo (message ou callback)
     msg_alvo = update.message if update.message else update.callback_query.message
-    
+
     # Envia mensagem de carregamento
     total_regs = len(regulacoes)
     msg_carregando = f"🔄 Consultando <b>{total_regs}</b> regulação(ões) na FMS... Por favor, aguarde."
@@ -220,10 +230,9 @@ async def comando_verificar_todas(update: Update, context: ContextTypes.DEFAULT_
 
     relatorios = []
 
-        # Dispara verificação em BACKGROUND
-    asyncio.create_task(
-        _verificar_todas_bg(regulacoes, msg_alvo, restantes)
-    )
+    # Dispara verificação em BACKGROUND
+    asyncio.create_task(_verificar_todas_bg(regulacoes, msg_alvo, restantes))
+
 
 async def _verificar_todas_bg(regulacoes, msg_alvo, restantes):
     """Roda a verificação de N regulações em background."""
@@ -233,9 +242,7 @@ async def _verificar_todas_bg(regulacoes, msg_alvo, restantes):
         if not num_reg:
             continue
         try:
-            resultado = await asyncio.wait_for(
-                consultar_com_limite(num_reg), timeout=30
-            )
+            resultado = await asyncio.wait_for(consultar_com_limite(num_reg), timeout=30)
         except asyncio.TimeoutError:
             logger.warning(f"Timeout FMS {num_reg}")
             resultado = {"sucesso": False, "mensagem": "Tempo limite excedido"}
@@ -268,12 +275,13 @@ async def _verificar_todas_bg(regulacoes, msg_alvo, restantes):
     except Exception as e:
         logger.error(f"Erro em _verificar_todas_bg: {e}")
 
+
 # ═══════════════════════════════════════════════
 # COMANDO: VERIFICAR ESPECÍFICO
 # ═══════════════════════════════════════════════
 
-async def iniciar_verificar_especifico(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
 
+async def iniciar_verificar_especifico(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     try:
         user_id = update.effective_user.id
 
@@ -283,7 +291,9 @@ async def iniciar_verificar_especifico(update: Update, context: ContextTypes.DEF
             msg_carregando = await update.message.reply_text("⏳ Consultando suas regulações, aguarde...")
         elif update.callback_query:
             await update.callback_query.answer("Carregando...")
-            msg_carregando = await update.callback_query.message.reply_text("⏳ Consultando suas regulações, aguarde...")
+            msg_carregando = await update.callback_query.message.reply_text(
+                "⏳ Consultando suas regulações, aguarde..."
+            )
 
         # 2. Consulta no Supabase
         res = supabase.table("AlertaSUS_2.0").select("*").eq("chat_id", user_id).execute()
@@ -295,7 +305,7 @@ async def iniciar_verificar_especifico(update: Update, context: ContextTypes.DEF
                 await context.bot.edit_message_text(
                     chat_id=update.effective_chat.id,
                     message_id=msg_carregando.message_id,
-                    text=msg_sem_dados
+                    text=msg_sem_dados,
                 )
             return ConversationHandler.END
 
@@ -316,13 +326,15 @@ async def iniciar_verificar_especifico(update: Update, context: ContextTypes.DEF
         teclado_botoes.append([InlineKeyboardButton("❌ Cancelar", callback_data="cancelar_ver_esp")])
         reply_markup = InlineKeyboardMarkup(teclado_botoes)
 
-                # 4. Contador de restantes (usa função que ignora intervalo)
+        # 4. Contador de restantes (usa função que ignora intervalo)
         from verificacao_limite import restantes_reais
+
         restantes_esp = restantes_reais(str(user_id), "especifico")
 
         # 5. Menu com legenda colorida
-                # 5. Menu com legenda colorida
+        # 5. Menu com legenda colorida
         from verificacao_limite import _eh_admin as _check_admin
+
         eh_admin = _check_admin(str(user_id))
 
         if eh_admin:
@@ -333,20 +345,16 @@ async def iniciar_verificar_especifico(update: Update, context: ContextTypes.DEF
         msg = (
             "🔍 <b>Selecione qual regulação verificar</b>\n"
             "<i>Ou digite o ID abaixo:</i>\n\n"
-
             "━━━━━━━━━━━━━━━\n"
             "🎨 <b>LEGENDA DE STATUS</b>\n"
             "━━━━━━━━━━━━━━━\n\n"
-
             "🟢 <b>Agendada</b> · vá à UBS assinar e carimbar\n"
             "🟡 <b>Em fila</b> · aguarde, monitorando\n"
             "🔵 <b>Vencida</b> · revalidação atrasada\n"
             "🔴 <b>Cancelada</b> · procure a UBS\n"
             "🟣 <b>Revalidar</b> · procure a UBS antes dos 60 dias\n"
             "⚪ <b>Sem status</b> · portal não informou\n\n"
-
             "💡 <i>Fique de olho nas 🟡 Em fila!</i>\n\n"
-
             "━━━━━━━━━━━━━━━\n"
             f"{rodape}"
         )
@@ -358,7 +366,7 @@ async def iniciar_verificar_especifico(update: Update, context: ContextTypes.DEF
                 message_id=msg_carregando.message_id,
                 text=msg,
                 reply_markup=reply_markup,
-                parse_mode="HTML"
+                parse_mode="HTML",
             )
         context.user_data["_em_fluxo_admin"] = "verificar"
         return CONSULTAR_ID
@@ -376,6 +384,7 @@ async def processar_verificar_especifico(update: Update, context: ContextTypes.D
 
         # 🔒 Bloqueio de plano expirado
         from handler import verificar_plano_ativo, enviar_alerta_plano_expirado
+
         ativo, info = verificar_plano_ativo(user_id)
         if not ativo:
             await enviar_alerta_plano_expirado(update, context)
@@ -396,6 +405,7 @@ async def processar_verificar_especifico(update: Update, context: ContextTypes.D
 
         # 🆕 LIMITE DIÁRIO + INTERVALO
         from verificacao_limite import pode_verificar, registrar_verificacao
+
         chat_id = str(user_id)
         pode, motivo, restantes = pode_verificar(chat_id, "especifico")
 
@@ -404,14 +414,14 @@ async def processar_verificar_especifico(update: Update, context: ContextTypes.D
                 segundos = int(motivo.split(":")[1])
                 await msg_alvo.reply_text(
                     f"⏳ <b>Aguarde {segundos} segundos</b> para fazer outra verificação.",
-                    parse_mode="HTML"
+                    parse_mode="HTML",
                 )
             else:
                 await msg_alvo.reply_text(
                     "⏳ <b>Limite diário de verificações específicas atingido!</b>\n\n"
                     "Você já usou suas <b>10 verificações específicas</b> de hoje.\n\n"
                     "💡 <i>Aguarde até meia-noite para novas verificações.</i>",
-                    parse_mode="HTML"
+                    parse_mode="HTML",
                 )
             context.user_data.pop("_em_fluxo_admin", None)
             return ConversationHandler.END
@@ -420,16 +430,11 @@ async def processar_verificar_especifico(update: Update, context: ContextTypes.D
         registrar_verificacao(chat_id, "especifico")
 
         # Mensagem de carregamento
-        msg_carregando = (
-            f"🔄 Consultando a regulação <b>{num_reg}</b> na FMS... "
-            "Por favor, aguarde."
-        )
+        msg_carregando = f"🔄 Consultando a regulação <b>{num_reg}</b> na FMS... Por favor, aguarde."
         await msg_alvo.reply_text(msg_carregando, parse_mode="HTML")
 
-                # Dispara verificação em BACKGROUND (não bloqueia o bot)
-        asyncio.create_task(
-                    _verificar_especifico_bg(num_reg, user_id, msg_alvo, restantes)
-        )
+        # Dispara verificação em BACKGROUND (não bloqueia o bot)
+        asyncio.create_task(_verificar_especifico_bg(num_reg, user_id, msg_alvo, restantes))
 
         return ConversationHandler.END
 
@@ -440,10 +445,7 @@ async def processar_verificar_especifico(update: Update, context: ContextTypes.D
         try:
             alvo = update.effective_message
             if alvo:
-                await alvo.reply_text(
-                    "⚠️ Ocorreu um erro ao consultar esta regulação. "
-                    "Tente novamente mais tarde."
-                )
+                await alvo.reply_text("⚠️ Ocorreu um erro ao consultar esta regulação. " "Tente novamente mais tarde.")
         except Exception:
             pass
     finally:
@@ -451,29 +453,22 @@ async def processar_verificar_especifico(update: Update, context: ContextTypes.D
 
     return ConversationHandler.END
 
+
 async def _verificar_especifico_bg(num_reg, user_id, msg_alvo, restantes):
     """Roda a consulta FMS em background e envia o resultado quando chegar."""
     try:
         try:
-            resultado = await asyncio.wait_for(
-                consultar_com_limite(num_reg), timeout=30
-            )
+            resultado = await asyncio.wait_for(consultar_com_limite(num_reg), timeout=30)
         except asyncio.TimeoutError:
             await msg_alvo.reply_text(
-                "⏳ <b>O portal FMS está demorando para responder.</b>\n\n"
-                "Tente novamente em alguns minutos.",
+                "⏳ <b>O portal FMS está demorando para responder.</b>\n\n" "Tente novamente em alguns minutos.",
                 parse_mode="HTML",
             )
             return
 
         # Busca dados complementares
         try:
-            res_db = (
-                supabase.table("AlertaSUS_2.0")
-                .select("*")
-                .eq("numero_reg", num_reg)
-                .execute()
-            )
+            res_db = supabase.table("AlertaSUS_2.0").select("*").eq("numero_reg", num_reg).execute()
             reg_data = res_db.data[0] if res_db.data else {}
         except Exception:
             reg_data = {}
@@ -486,11 +481,9 @@ async def _verificar_especifico_bg(num_reg, user_id, msg_alvo, restantes):
         try:
             if isinstance(resultado, dict) and resultado.get("sucesso"):
                 status_novo = (resultado.get("situacao") or "Informada no portal").strip()
-                supabase.table("AlertaSUS_2.0").update(
-                    {"status_anterior_cidadao": status_novo}
-                ).eq("numero_reg", num_reg).eq(
-                    "chat_id", str(user_id)
-                ).execute()
+                supabase.table("AlertaSUS_2.0").update({"status_anterior_cidadao": status_novo}).eq(
+                    "numero_reg", num_reg
+                ).eq("chat_id", str(user_id)).execute()
         except Exception as e:
             logger.error(f"Erro ao atualizar status_anterior_cidadao: {e}")
 

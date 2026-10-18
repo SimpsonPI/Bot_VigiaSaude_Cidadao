@@ -3,6 +3,7 @@
 Armazenamento local de enquetes em JSON.
 Os dados ficam no arquivo 'enquetes_data.json' na pasta do projeto.
 """
+
 import json
 import os
 import logging
@@ -160,6 +161,7 @@ def calcular_resultado(enquete: dict) -> dict:
         "opcoes": opcoes,
     }
 
+
 def salvar_mensagem(enquete_id: int, chat_id: str, message_id: int):
     """Registra o message_id de cada destinatário para permitir edição posterior."""
     with _lock:
@@ -178,6 +180,7 @@ def obter_mensagens(enquete_id: int) -> dict:
     if not enq:
         return {}
     return enq.get("mensagens", {})
+
 
 from datetime import datetime, timezone, timedelta
 
