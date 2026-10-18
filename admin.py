@@ -34,7 +34,7 @@ async def comando_estatisticas(update: Update, context: ContextTypes.DEFAULT_TYP
         res_ativos = supabase.table("assinaturas").select("tipo_plano", count="exact").eq("status", "ativo").execute()
         total_ativos = res_ativos.count if hasattr(res_ativos, "count") else len(res_ativos.data)
 
-        res_regulacoes = supabase.table("AlertaSUS_2.0").select("*", count="exact").execute()
+        res_regulacoes = supabase.table("VigiaSaude_cidadao").select("*", count="exact").execute()
         total_regulacoes = res_regulacoes.count if hasattr(res_regulacoes, "count") else len(res_regulacoes.data)
 
         texto = (

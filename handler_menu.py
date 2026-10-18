@@ -50,7 +50,7 @@ async def comando_ajuda(update: Update, context: ContextTypes.DEFAULT_TYPE):
             [
                 InlineKeyboardButton(
                     "🤖 Central de Atendimento ao Usuário VigiaSaude Cidadao",
-                    url="https://t.me/AlertaSUS_Atendimento_ao_Usuario",
+                    url="https://t.me/VigiaSaude_Atendimento_ao_Usuario",
                 )
             ]
         ]
@@ -85,7 +85,7 @@ async def callback_ajuda(update: Update, context: ContextTypes.DEFAULT_TYPE):
             [
                 InlineKeyboardButton(
                     "🤖 Central de Atendimento ao Usuário VigiaSaude Cidadao",
-                    url="https://t.me/AlertaSUS_Atendimento_ao_Usuario",
+                    url="https://t.me/VigiaSaude_Atendimento_ao_Usuario",
                 )
             ],
             [InlineKeyboardButton("⬅️ Voltar", callback_data="voltar_inicio")],

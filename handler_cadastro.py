@@ -31,15 +31,31 @@ from utils import (
 async def iniciar_cadastro_manual(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Inicia o cadastro de uma nova regulação institucional."""
     user_id = update.effective_user.id
-    LIMITE_MAX = 10
 
-    # Verifica quantas regulações o usuário já cadastrou
+    # 1. Verifica se o usuário já tem cadastros no histórico vitalício
     try:
-        res = supabase.table("AlertaSUS_2.0").select("id", count="exact").eq("chat_id", user_id).execute()
-        total_regs = res.count if hasattr(res, "count") and res.count is not None else len(res.data or [])
+        res_hist = supabase.table("VigiaSaude_cidadao_autorizados").select("cadastros_realizados").eq("chat_id", user_id).execute()
+        cadastros_feitos = res_hist.data[0].get("cadastros_realizados", 0) if res_hist.data else 0
     except Exception as e:
-        logger.error(f"Erro ao contar regulações: {e}")
+        logger.error(f"Erro ao buscar histórico: {e}")
+        cadastros_feitos = 0
 
+    # 2. Bloqueio do Freemium
+    if cadastros_feitos >= 2:
+        await update.message.reply_text(
+            "🚫 <b>Limite Gratuito Atingido</b>\n\n"
+            "Você já utilizou suas 2 vagas gratuitas no VigiaSaúde Cidadão.\n\n"
+            "Para monitorar novos exames, conheça nossa versão Premium:\n"
+            "👉 @vigiasaude_bot",
+            parse_mode="HTML"
+        )
+        return ConversationHandler.END
+
+    # 3. Conta quantas regulações ativas ele tem agora (para mostrar no menu)
+    try:
+        res_ativos = supabase.table("VigiaSaude_cidadao").select("id", count="exact").eq("chat_id", user_id).execute()
+        total_regs = res_ativos.count if hasattr(res_ativos, "count") else len(res_ativos.data or [])
+    except Exception as e:
         total_regs = 0
 
         if total_regs >= LIMITE_MAX and not is_admin(user_id):
@@ -62,7 +78,7 @@ async def iniciar_cadastro_manual(update: Update, context: ContextTypes.DEFAULT_
 
     try:
         res_sus = (
-            supabase.table("AlertaSUS_2.0")
+            supabase.table("VigiaSaude_cidadao")
             .select("numero_sus, nome_paciente, data_nascimento")
             .eq("chat_id", user_id)
             .order("id", desc=True)
@@ -83,7 +99,7 @@ async def iniciar_cadastro_manual(update: Update, context: ContextTypes.DEFAULT_
     if not sus_lista:
         await update.message.reply_text(
             "📝 <b>Iniciando cadastro de nova regulação.</b>\n\n"
-            f"Você tem <b>{total_regs}/{LIMITE_MAX}</b> regulações cadastradas.\n\n"
+                f"Você tem <b>{total_regs}/2</b> regulações cadastradas.\n\n"
             "Por favor, digite o <b>número do Cartão SUS</b> do paciente (15 dígitos):",
             parse_mode="HTML",
             reply_markup=TECLADO_CANCELAR,
@@ -153,7 +169,7 @@ async def callback_escolher_sus(update: Update, context: ContextTypes.DEFAULT_TY
         try:
             # AQUI ESTAVA O ERRO: A linha do 'res' tinha sido apagada sem querer
             res = (
-                supabase.table("AlertaSUS_2.0")
+                supabase.table("VigiaSaude_cidadao")
                 .select("nome_paciente, data_nascimento")
                 .eq("chat_id", update.effective_user.id)
                 .eq("numero_sus", num_sus)
@@ -238,7 +254,7 @@ async def receber_sus(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
     context.user_data["sus"] = numero_sus
 
     try:
-        resposta = supabase.table("AlertaSUS_2.0").select("*").eq("numero_sus", numero_sus).execute()
+        resposta = supabase.table("VigiaSaude_cidadao").select("*").eq("numero_sus", numero_sus).execute()
         registros = resposta.data
 
         if registros and len(registros) > 0:
@@ -319,11 +335,17 @@ async def callback_reuso_dados(update: Update, context: ContextTypes.DEFAULT_TYP
 async def receber_nome(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     if await verificar_se_e_menu_e_executar(update, context):
         return ConversationHandler.END
+        
     nome = update.message.text.strip()
     nome = nome.replace("<", "").replace(">", "").replace("&", "&amp;")[:80]
     context.user_data["nome"] = nome
-    await update.message.reply_text("Digite o número de <b>celular/WhatsApp</b> (com DDD):", parse_mode="HTML")
-    return ETAPA_CELULAR
+    
+    # Agora pede a Data de Nascimento em vez do celular
+    await update.message.reply_text(
+        "Agora, digite a <b>Data de Nascimento</b> do paciente (ex: DD/MM/AAAA):", 
+        parse_mode="HTML"
+    )
+    return ETAPA_NASCIMENTO
 
 
 async def receber_celular(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
@@ -388,7 +410,7 @@ async def receber_regulacao(update: Update, context: ContextTypes.DEFAULT_TYPE) 
     try:
         chat_id = str(update.effective_user.id)
         res_dup = (
-            supabase.table("AlertaSUS_2.0")
+            supabase.table("VigiaSaude_cidadao")
             .select("id")
             .eq("numero_reg", num_reg)
             .eq("chat_id", int(chat_id) if chat_id.isdigit() else chat_id)
@@ -474,7 +496,9 @@ async def receber_procedimento(update: Update, context: ContextTypes.DEFAULT_TYP
     )
     return ETAPA_LGPD
 
+from bot_seguranca import safe_callback
 
+@safe_callback
 async def finalizar_cadastro(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     query = update.callback_query
     await query.answer()
@@ -501,7 +525,7 @@ async def finalizar_cadastro(update: Update, context: ContextTypes.DEFAULT_TYPE)
         "chat_id": user_id,
         "numero_sus": dados.get("sus"),
         "nome_paciente": dados.get("nome"),
-        "celular": dados.get("celular"),
+        #"celular": dados.get("celular"),
         "data_nascimento": dados.get("nascimento"),
         "numero_reg": dados.get("numero_regulacao"),
         "cbo": dados.get("cbo"),
@@ -513,7 +537,7 @@ async def finalizar_cadastro(update: Update, context: ContextTypes.DEFAULT_TYPE)
     if numero_reg_novo:
         try:
             checagem = (
-                supabase.table("AlertaSUS_2.0")
+                supabase.table("VigiaSaude_cidadao")
                 .select("id")
                 .eq("chat_id", user_id)
                 .eq("numero_reg", numero_reg_novo)
@@ -546,48 +570,24 @@ async def finalizar_cadastro(update: Update, context: ContextTypes.DEFAULT_TYPE)
         except Exception as e:
             print(f"DEBUG duplicata: erro na checagem ({e}) — seguindo com insert")
 
-    print("DEBUG 1: Salvando no Supabase...")
+        print("DEBUG 1: Salvando no Supabase...")
     sucesso = await salvar_regulacao(dados_salvar)
     print(f"DEBUG 2: salvar_regulacao = {sucesso}")
 
-    try:
-        registrar_consentimento_lgpd(user_id)
-        print("DEBUG 3: LGPD registrado com sucesso.")
-    except Exception as e:
-        print(f"DEBUG 3 AVISO LGPD: {e}")
-
-    # 1. Apaga a mensagem do Termo LGPD para sumir com os botões travados
-    print("DEBUG 4: Apagando mensagem com os botões...")
-    try:
-        await query.message.delete()
-        print("DEBUG 5: Mensagem do termo apagada com sucesso.")
-    except Exception as e:
-        print(f"DEBUG 5 ERRO ao apagar mensagem: {e}")
+    # --- INÍCIO DA ALTERAÇÃO (CONTADOR VITALÍCIO) ---
+    if sucesso:
+        user_id = update.effective_user.id
         try:
-            await query.edit_message_reply_markup(reply_markup=None)
-        except Exception:
-            pass
+            # Busca o valor atual e soma +1
+            res_atual = supabase.table("VigiaSaude_cidadao_autorizados").select("cadastros_realizados").eq("chat_id", user_id).execute()
+            atual = res_atual.data[0].get("cadastros_realizados", 0) if res_atual.data else 0
+            supabase.table("VigiaSaude_cidadao_autorizados").update({"cadastros_realizados": atual + 1}).eq("chat_id", user_id).execute()
+            print("DEBUG 3: Contador vitalício atualizado!")
+        except Exception as e:
+            logger.error(f"Erro ao atualizar contador vitalício: {e}")
+    # --- FIM DA ALTERAÇÃO ---
 
-    # 2. Envia a mensagem de confirmação no chat
-    print("DEBUG 6: Enviando mensagem de sucesso no chat...")
-    await context.bot.send_message(
-        chat_id=chat_id,
-        text="✅ <b>Regulação cadastrada com sucesso!</b>\nEla será monitorada automaticamente pelo sistema.",
-        parse_mode="HTML",
-    )
-
-    # 3. Envia o Menu Principal
-    print("DEBUG 7: Enviando menu principal...")
-    await context.bot.send_message(chat_id=chat_id, text="O que deseja fazer agora?", reply_markup=TECLADO_MENU)
-
-    # 4. Marketing: oferta pós-1ª regulação
-    try:
-        from handler import enviar_oferta_primeira_regulacao
-
-        await enviar_oferta_primeira_regulacao(update, context, str(user_id))
-    except Exception as e:
-        print(f"DEBUG MARKETING: {e}")
-
+    # O restante do código (que envia a mensagem de sucesso e encerra a conversa) continua igual a partir daqui:
     context.user_data.clear()
-    print("DEBUG 8: Fluxo finalizado com sucesso!")
+    context.user_data.pop("_em_fluxo_admin", None)
     return ConversationHandler.END

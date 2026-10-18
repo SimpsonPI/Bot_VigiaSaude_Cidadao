@@ -595,7 +595,7 @@ async def executar_varredura_automatica(context: ContextTypes.DEFAULT_TYPE):
 
                 status_novo = (resultado_fms.get("situacao") or "").strip()
                 posicao_nova = (resultado_fms.get("posicao_fila") or "").strip()
-                sb.table("AlertaSUS_2.0").update(
+                sb.table("VigiaSaude_cidadao").update(
                     {
                         "status_anterior_cidadao": status_novo,
                         "posicao_anterior": posicao_nova,
@@ -833,7 +833,7 @@ conv_cadastro = ConversationHandler(
             CallbackQueryHandler(callback_reuso_dados, pattern="^reuso_(sim|nao)$"),
         ],
         ETAPA_NOME: [MessageHandler(filters.TEXT & ~filters.COMMAND, receber_nome)],
-        ETAPA_CELULAR: [MessageHandler(filters.TEXT & ~filters.COMMAND, receber_celular)],
+        #ETAPA_CELULAR: [MessageHandler(filters.TEXT & ~filters.COMMAND, receber_celular)],
         ETAPA_NASCIMENTO: [MessageHandler(filters.TEXT & ~filters.COMMAND, receber_nascimento)],
         ETAPA_REGULACAO: [MessageHandler(filters.TEXT & ~filters.COMMAND, receber_regulacao)],
         ETAPA_CBO: [MessageHandler(filters.TEXT & ~filters.COMMAND, receber_cbo)],
