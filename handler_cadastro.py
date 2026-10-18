@@ -1,4 +1,7 @@
 # handler_cadastro.py
+import logging
+import os
+logger = logging.getLogger(__name__)
 import re
 from config import is_admin
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
@@ -123,15 +126,21 @@ async def iniciar_cadastro_manual(update: Update, context: ContextTypes.DEFAULT_
 
     return ETAPA_ESCOLHER_SUS
 
+from bot_seguranca import safe_callback
 
+@safe_callback
 async def callback_escolher_sus(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Processa a escolha do SUS no início do cadastro."""
     query = update.callback_query
-    await query.answer()
     data = query.data
 
+    if data == "cancelar":
+        await query.edit_message_text("❌ Cadastro cancelado.")
+        context.user_data.clear()
+        return ConversationHandler.END
+
     if data == "novo_sus":
-        for k in ("sus", "nome", "celular", "nascimento"):
+        for k in ("sus", "nome", "nascimento"):
             context.user_data.pop(k, None)
         await query.edit_message_text(
             "Ok! Digite o <b>número do Cartão SUS</b> do paciente (15 dígitos):",
@@ -139,9 +148,10 @@ async def callback_escolher_sus(update: Update, context: ContextTypes.DEFAULT_TY
         )
         return ETAPA_SUS
 
-        if data.startswith("usar_sus_"):
-            num_sus = data.replace("usar_sus_", "")
+    if data.startswith("usar_sus_"):
+        num_sus = data.replace("usar_sus_", "")
         try:
+            # AQUI ESTAVA O ERRO: A linha do 'res' tinha sido apagada sem querer
             res = (
                 supabase.table("AlertaSUS_2.0")
                 .select("nome_paciente, data_nascimento")
@@ -158,19 +168,54 @@ async def callback_escolher_sus(update: Update, context: ContextTypes.DEFAULT_TY
 
         context.user_data["sus"] = num_sus
         context.user_data["nome"] = dados.get("nome_paciente") or ""
-        context.user_data["celular"] = dados.get("celular") or ""
         context.user_data["nascimento"] = dados.get("data_nascimento") or ""
 
-        await query.edit_message_text(
+        texto_id = (
             f"✅ <b>SUS carregado:</b> <code>{num_sus}</code>\n\n"
             f"👤 <b>Paciente:</b> {dados.get('nome_paciente') or '—'}\n"
             f"📅 <b>Nascimento:</b> {dados.get('data_nascimento') or '—'}\n\n"
-            "Agora digite o <b>ID da Regulação</b> (8 dígitos):",
-            parse_mode="HTML",
+            "🆔 <b>Agora digite o ID da Regulação (8 dígitos):</b>"
         )
+
+        # Apaga a mensagem dos botões antiga
+        try:
+            await query.message.delete()
+        except Exception:
+            pass
+
+        # Busca o caminho absoluto da imagem
+        caminho_imagem = os.path.join(os.path.dirname(__file__), "modelo_comprovante.jpg")
+
+                # Busca o caminho absoluto da imagem
+        caminho_imagem = os.path.join(os.path.dirname(__file__), "comprovante_sus.jpg")
+
+        # Envia a foto como nova mensagem
+        try:
+            with open(caminho_imagem, "rb") as foto:
+                await context.bot.send_photo(
+                    chat_id=update.effective_chat.id,
+                    photo=foto,
+                    caption=texto_id,
+                    parse_mode="HTML"
+                )
+        except Exception as e:
+            logger.error(f"Erro ao enviar imagem: {e}")
+            await context.bot.send_message(
+                chat_id=update.effective_chat.id,
+                text=texto_id + "\n\n(Imagem ilustrativa indisponível no momento)",
+                parse_mode="HTML"
+            )
+        except Exception as e:
+            logger.error(f"Erro ao enviar imagem: {e}")
+            await context.bot.send_message(
+                chat_id=update.effective_chat.id,
+                text=texto_id + "\n\n(Imagem ilustrativa indisponível no momento)",
+                parse_mode="HTML"
+            )
+
         return ETAPA_REGULACAO
 
-    return ETAPA_ESCOLHER_SUS
+    return ConversationHandler.END
 
 
 async def receber_sus(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
@@ -299,24 +344,22 @@ async def receber_nascimento(update: Update, context: ContextTypes.DEFAULT_TYPE)
     nascimento = formatar_data(update.message.text.strip())
     context.user_data["nascimento"] = nascimento
 
-    aviso = (
+    texto_id = (
         "✅ <b>Data de nascimento registrada.</b>\n\n"
-        "━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
         "⚠️ <b>PRÓXIMO PASSO: ID da Regulação</b>\n\n"
-        "Antes de digitar, tenha em mãos o seu <b>comprovante de agendamento</b> e confira:\n\n"
+        "Antes de digitar, tenha em mãos o seu <b>comprovante de agendamento</b> e confira:\n"
         "✅ O ID correto no papel\n"
-        "✅ Se os <b>8 dígitos</b> conferem <b>exatamente</b>\n"
-        "✅ Se o ID é da <b>sua</b> regulação\n\n"
-        "❌ <b>Se você digitar o ID errado, o bot pode mostrar "
-        "dados de outro paciente do SUS.</b>\n\n"
-        "📌 <i>Exemplo:</i>\n"
-        "Cadastrar <code>12345678</code> em vez de <code>87654321</code> "
-        "pode trazer um agendamento <b>completamente diferente</b>.\n\n"
-        "💡 O ID tem <b>8 dígitos</b>.\n\n"
-        "<b>Digite o ID da Regulação:</b>"
+        "✅ Se os <b>8 dígitos</b> conferem\n\n"
+        "🆔 <b>Digite o ID da Regulação:</b>"
     )
 
-    await update.message.reply_text(aviso, parse_mode="HTML")
+    # Envia a foto do comprovante
+    try:
+        with open("modelo_comprovante.jpg", "rb") as foto:
+            await update.message.reply_photo(photo=foto, caption=texto_id, parse_mode="HTML")
+    except FileNotFoundError:
+        await update.message.reply_text(texto_id, parse_mode="HTML")
+
     return ETAPA_REGULACAO
 
 

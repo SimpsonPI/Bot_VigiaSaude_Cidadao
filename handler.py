@@ -825,7 +825,9 @@ conv_cadastro = ConversationHandler(
         CallbackQueryHandler(iniciar_cadastro_manual, pattern="^cadastrar_nova$"),
     ],
     states={
-        ETAPA_ESCOLHER_SUS: [CallbackQueryHandler(callback_escolher_sus, pattern="^(usar_sus_|novo_sus)")],
+        ETAPA_ESCOLHER_SUS: [
+    CallbackQueryHandler(callback_escolher_sus, pattern="^(usar_sus_.*|novo_sus|cancelar)$")
+],
         ETAPA_SUS: [MessageHandler(filters.TEXT & ~filters.COMMAND, receber_sus)],
         ETAPA_CONFIRMAR_REUSO: [  # ← NOVO BLOCO
             CallbackQueryHandler(callback_reuso_dados, pattern="^reuso_(sim|nao)$"),

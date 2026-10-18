@@ -1,5 +1,5 @@
 from dotenv import load_dotenv
-
+from bot_seguranca import global_error_handler
 load_dotenv()
 
 # Só DEPOIS os outros imports
@@ -327,6 +327,7 @@ def main():
     threading.Thread(target=run_http_server, args=(PORT,), daemon=True).start()
 
     logger.info("Iniciando o bot VigiaSaude Cidadao Cidadao via polling...")
+    app.add_error_handler(global_error_handler)
     app.run_polling(drop_pending_updates=True)
 
 
