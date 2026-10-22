@@ -61,7 +61,7 @@ async def iniciar_cadastro_manual(update: Update, context: ContextTypes.DEFAULT_
         if total_regs >= LIMITE_MAX and not is_admin(user_id):
             await update.message.reply_text(
                 f"📌 <b>Limite de regulações atingido</b>\n\n"
-                f"Você já cadastrou <b>{total_regs}/{LIMITE_MAX}</b> regulações — "
+                f"Você já cadastrou <b>{total_regs}/2</b> regulações — "
                 "esse é o máximo permitido pelo sistema.\n\n"
                 "💡 <b>Como cadastrar novas regulações?</b>\n"
                 "Você pode <b>excluir</b> regulações antigas que já foram finalizadas "
@@ -118,7 +118,7 @@ async def iniciar_cadastro_manual(update: Update, context: ContextTypes.DEFAULT_
         )
         await update.message.reply_text(
             "📝 <b>Iniciando cadastro de nova regulação.</b>\n\n"
-            f"Você tem <b>{total_regs}/{LIMITE_MAX}</b> regulações cadastradas.\n\n"
+            f"Você tem <b>{total_regs}/2</b> regulações cadastradas.\n\n"
             f"💳 Detectei um Cartão do SUS cadastrado:\n"
             f"<code>{num}</code> · {nome}\n\n"
             "Deseja usar o mesmo número de Cartão do SUS?",
@@ -134,7 +134,7 @@ async def iniciar_cadastro_manual(update: Update, context: ContextTypes.DEFAULT_
         botoes.append([InlineKeyboardButton("❌ Cancelar", callback_data="iniciar")])
         await update.message.reply_text(
             "📝 <b>Iniciando cadastro de nova regulação.</b>\n\n"
-            f"Você tem <b>{total_regs}/{LIMITE_MAX}</b> regulações cadastradas.\n\n"
+            f"Você tem <b>{total_regs}/2</b> regulações cadastradas.\n\n"
             "💳 <b>Selecione qual Cartão do SUS deseja usar:</b>",
             parse_mode="HTML",
             reply_markup=InlineKeyboardMarkup(botoes),
@@ -498,9 +498,12 @@ async def receber_procedimento(update: Update, context: ContextTypes.DEFAULT_TYP
 
 from bot_seguranca import safe_callback
 
+from bot_seguranca import safe_callback
+
 @safe_callback
 async def finalizar_cadastro(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     query = update.callback_query
+    # O query.answer() é obrigatório para parar de girar o botão no Telegram
     await query.answer()
 
     user_id = update.effective_user.id
@@ -525,69 +528,48 @@ async def finalizar_cadastro(update: Update, context: ContextTypes.DEFAULT_TYPE)
         "chat_id": user_id,
         "numero_sus": dados.get("sus"),
         "nome_paciente": dados.get("nome"),
-        #"celular": dados.get("celular"),
         "data_nascimento": dados.get("nascimento"),
         "numero_reg": dados.get("numero_regulacao"),
         "cbo": dados.get("cbo"),
         "procedimento": dados.get("procedimento"),
     }
 
-    # 🛡️ Prevenção de duplicata: mesmo chat_id + numero_reg
-    numero_reg_novo = dados_salvar.get("numero_reg")
-    if numero_reg_novo:
+    # Tenta salvar
+    sucesso = await salvar_regulacao(dados_salvar)
+
+    if sucesso:
         try:
-            checagem = (
-                supabase.table("VigiaSaude_cidadao")
-                .select("id")
+            # Atualiza o contador vitalício
+            res_atual = (
+                supabase.table("VigiaSaude_cidadao_autorizados")
+                .select("cadastros_realizados")
                 .eq("chat_id", user_id)
-                .eq("numero_reg", numero_reg_novo)
                 .execute()
             )
-            if checagem.data:
-                # Apaga a mensagem do termo LGPD pra não deixar botão travado
-                try:
-                    await query.message.delete()
-                except Exception:
-                    try:
-                        await query.edit_message_reply_markup(reply_markup=None)
-                    except Exception:
-                        pass
-
-                await context.bot.send_message(
-                    chat_id=chat_id,
-                    text=(
-                        f"⚠️ <b>Você já tem a regulação <code>{numero_reg_novo}</code> cadastrada.</b>\n\n"
-                        "Não é possível cadastrar a mesma regulação duas vezes.\n\n"
-                        "💡 Se precisar alterar algo, use /corrigir.\n"
-                        "💡 Se quiser remover, use /excluir."
-                    ),
-                    parse_mode="HTML",
-                    reply_markup=TECLADO_MENU,
-                )
-                context.user_data.clear()
-                context.user_data.pop("_em_fluxo_admin", None)
-                return ConversationHandler.END
-        except Exception as e:
-            print(f"DEBUG duplicata: erro na checagem ({e}) — seguindo com insert")
-
-        print("DEBUG 1: Salvando no Supabase...")
-    sucesso = await salvar_regulacao(dados_salvar)
-    print(f"DEBUG 2: salvar_regulacao = {sucesso}")
-
-    # --- INÍCIO DA ALTERAÇÃO (CONTADOR VITALÍCIO) ---
-    if sucesso:
-        user_id = update.effective_user.id
-        try:
-            # Busca o valor atual e soma +1
-            res_atual = supabase.table("VigiaSaude_cidadao_autorizados").select("cadastros_realizados").eq("chat_id", user_id).execute()
             atual = res_atual.data[0].get("cadastros_realizados", 0) if res_atual.data else 0
             supabase.table("VigiaSaude_cidadao_autorizados").update({"cadastros_realizados": atual + 1}).eq("chat_id", user_id).execute()
-            print("DEBUG 3: Contador vitalício atualizado!")
         except Exception as e:
-            logger.error(f"Erro ao atualizar contador vitalício: {e}")
-    # --- FIM DA ALTERAÇÃO ---
+            print(f"Erro ao atualizar contador: {e}")
 
-    # O restante do código (que envia a mensagem de sucesso e encerra a conversa) continua igual a partir daqui:
+        try:
+            await query.message.delete()
+        except Exception:
+            pass
+
+        # ENVIA A MENSAGEM FINAL (Isso destrava o botão de vez)
+        await context.bot.send_message(
+            chat_id=chat_id,
+            text="✅ <b>Regulação cadastrada com sucesso!</b>\n\nVocê receberá alertas quando houver mudanças.",
+            parse_mode="HTML",
+            reply_markup=TECLADO_MENU
+        )
+    else:
+        await context.bot.send_message(
+            chat_id=chat_id,
+            text="❌ <b>Erro interno ao salvar.</b> Tente novamente mais tarde.",
+            reply_markup=TECLADO_MENU
+        )
+
     context.user_data.clear()
     context.user_data.pop("_em_fluxo_admin", None)
     return ConversationHandler.END

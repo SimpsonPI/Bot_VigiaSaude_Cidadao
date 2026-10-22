@@ -205,8 +205,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
             mensagem += (
                 f"\n\n📊 <b>Seus limites de hoje:</b>\n"
-                f"• <b>Verificar todas:</b> {rest_todas}/3\n"
-                f"• <b>Verificar específico:</b> {rest_esp}/10\n\n"
+                f"• <b>Verificar todas:</b> {rest_todas}/1\n"
+                f"• <b>Verificar específico:</b> 0/0\n\n"
                 f"<i>🕐 O bot monitora suas regulações automaticamente "
                 f"a cada 6 horas, mesmo sem você pedir!</i>"
             )

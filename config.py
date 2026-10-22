@@ -1,7 +1,7 @@
+from datetime import timezone, timedelta
 import os
 from dotenv import load_dotenv
 from supabase import create_client, Client
-from zoneinfo import ZoneInfo
 
 # Carrega o .env se existir localmente (no seu PC), mas ignora se não achar (no Railway)
 load_dotenv()
@@ -49,7 +49,7 @@ supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 # ==================== CONFIGURAÇÕES GLOBAIS ====================
 
-FUSO_HORARIO = ZoneInfo("America/Fortaleza")
+FUSO_HORARIO = timezone(timedelta(hours=-3))
 URL_BUSCA_FMS = "https://agendamentos.sus.fms.pmt.pi.gov.br/detail_scheduling/index"
 
 BOT_APP = None
