@@ -22,13 +22,18 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     nome = user.first_name or "Usuário"
 
     mensagem = (
-        f"👋 Olá, <b>{nome}</b>! Bem-vindo (a) ao <b>VigiaSaude Cidadao</b>.\n\n"
+        f"👋 Olá, <b>{nome}</b>! É um prazer ter você aqui ao <b>VigiaSaude Cidadao</b>.\n\n"
         f"🆔 <b>Seu ID do Telegram:</b> <code>{user.id}</code>\n\n"
         "Acesse todas as opções e comandos diretamente pelo menu nativo do Telegram "
         "(botão <b>[/]</b> ao lado da barra de digitação)."
     )
 
-    await update.message.reply_text(mensagem, reply_markup=obter_menu_principal(), parse_mode="HTML")
+    await update.message.reply_text(mensagem, reply_markup=obter_menu_principal()
+
+    teclado_suporte = InlineKeyboardMarkup([
+        [InlineKeyboardButton("📚 Instruções de Uso", callback_data="suporte")]
+    ])
+    await update.message.reply_text("💡 <i>Precisa de ajuda com o VigiaSaúde?</i>", reply_markup=teclado_suporte, parse_mode="HTML")
 
 
 async def comando_ajuda(update: Update, context: ContextTypes.DEFAULT_TYPE):

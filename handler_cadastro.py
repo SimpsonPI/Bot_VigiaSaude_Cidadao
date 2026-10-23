@@ -420,7 +420,7 @@ async def receber_regulacao(update: Update, context: ContextTypes.DEFAULT_TYPE) 
         if res_dup.data:
             await update.message.reply_text(
                 f"⚠️ <b>Você já cadastrou a regulação {num_reg}!</b>\n\n"
-                "• Para ver o status: use /verificar_especifico\n"
+                ""
                 "• Para corrigir dados: use /corrigir\n\n"
                 "O cadastro foi cancelado.",
                 parse_mode="HTML",
@@ -436,7 +436,7 @@ async def receber_regulacao(update: Update, context: ContextTypes.DEFAULT_TYPE) 
     # ✅ FORA DO TRY/EXCEPT — sempre pede a especialidade no fluxo normal
     await update.message.reply_text(
         "Agora informe a <b>Especialidade</b> da consulta/exame\n"
-        "<i>(ex: ULTRASSONOGRAFIA, CARDIOLOGIA, OFTALMOLOGIA)</i>\n\n"
+        "<i>(Ex: Consulta / Exame)</i>\n\n"
         "Se não souber, digite <code>0</code> para pular.",
         parse_mode="HTML",
     )
@@ -454,7 +454,7 @@ async def receber_cbo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
         await update.message.reply_text(
             "⏭️ <b>Especialidade pulada.</b>\n\n"
             "Agora informe a <b>descrição do Procedimento/Exame / Consulta</b>:\n"
-            "<i>(ex: ULTRASSONOGRAFIA, CONSULTA CARDIOLOGIA)</i>",
+            "<i>(Ex: Consulta / Exame)</i>",
             parse_mode="HTML",
         )
         return ETAPA_PROCEDIMENTO

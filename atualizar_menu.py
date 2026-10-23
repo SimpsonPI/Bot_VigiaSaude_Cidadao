@@ -18,7 +18,7 @@ async def atualizar():
     comandos = [
         BotCommand("iniciar", "🚀 Menu principal e boas-vindas"),
         BotCommand("verificar_todos", "🔍 Verificar todas as regulações"),
-        BotCommand("verificar_especifico", "🎯 Verificar regulação específica"),
+        
         BotCommand("cadastrar_nova", "➕ Cadastrar nova regulação"),
         BotCommand("corrigir", "✏️ Corrigir dados de regulação"),
         BotCommand("excluir", "🗑️ Excluir uma regulação"),

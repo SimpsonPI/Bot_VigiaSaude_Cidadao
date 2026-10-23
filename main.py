@@ -226,7 +226,7 @@ def main():
 
     # ConversationHandlers
     app.add_handler(conv_cadastro)
-    app.add_handler(conv_consulta_especifica)
+#     app.add_handler(conv_consulta_especifica)
     #app.add_handler(conv_corrigir)
     app.add_handler(conv_excluir)
     app.add_handler(conv_envio_midia)

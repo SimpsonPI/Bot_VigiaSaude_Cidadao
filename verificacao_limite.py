@@ -5,11 +5,11 @@ from datetime import datetime, timezone, timedelta
 logger = logging.getLogger(__name__)
 
 # Limites diários
-LIMITE_VERIFICAR_TODAS = 1
+LIMITE_VERIFICAR_TODAS = 3
 LIMITE_VERIFICAR_ESPECIFICO = 0
 
 # Intervalo mínimo entre 2 consultas do mesmo usuário (segundos)
-INTERVALO_MINIMO = 60
+INTERVALO_MINIMO = 7200
 
 # Admin isento de limites
 ADMIN_ID = 5242040324
@@ -32,34 +32,25 @@ def _nome_coluna(tipo: str) -> str:
     """
     Mapeia o tipo para o nome correto da coluna no banco.
     - "todas"      → "verificacoes_todas"
-    - "especifico" → "verificacoes_especificas"  ← CORRIGIDO
+    - "especifico" → "verificacoes_especifico"  ← CORRIGIDO
     """
     if tipo == "todas":
         return "verificacoes_todas"
     if tipo == "especifico":
-        return "verificacoes_especificas"
+        return "verificacoes_especifico"
     raise ValueError(f"Tipo inválido: {tipo}")
 
 
 def pode_verificar(chat_id: str, tipo: str) -> tuple[bool, str, int]:
     from database import supabase
+    from datetime import datetime, timezone, timedelta
 
     if _eh_admin(chat_id):
         return (True, "", 999)
 
-    # Camada 2 — anti-rajada (só para usuários comuns)
     pode_jc, motivo_jc = pode_verificar_janela_curta(chat_id, tipo)
     if not pode_jc:
         return (False, motivo_jc, 0)
-
-    hoje = _hoje_brasilia()
-
-    # Camada 2 — anti-rajada em memória (antes de bater no banco)
-    pode_jc, motivo_jc = pode_verificar_janela_curta(chat_id, tipo)
-    if not pode_jc:
-        return (False, motivo_jc, 0)
-
-    hoje = _hoje_brasilia()
 
     limite = LIMITE_VERIFICAR_TODAS if tipo == "todas" else LIMITE_VERIFICAR_ESPECIFICO
     coluna = _nome_coluna(tipo)
@@ -67,9 +58,9 @@ def pode_verificar(chat_id: str, tipo: str) -> tuple[bool, str, int]:
     try:
         res = (
             supabase.table("verificacoes_usuarios")
-            .select(f"{coluna}, ultima_verificacao")
+            .select("*")
             .eq("chat_id", str(chat_id))
-            .eq("data", hoje)
+            .eq("data", _hoje_brasilia()) # Tenta buscar o registro de hoje
             .execute()
         )
 
@@ -85,6 +76,21 @@ def pode_verificar(chat_id: str, tipo: str) -> tuple[bool, str, int]:
                     ultima = datetime.fromisoformat(str(ultima_str).replace("Z", "+00:00"))
                 except Exception:
                     ultima = None
+        else:
+            # Se não achou com a data de hoje, busca o último registro geral para checar se foi hoje em BRT
+            res_any = supabase.table("verificacoes_usuarios").select("*").eq("chat_id", str(chat_id)).order("id", desc=True).limit(1).execute()
+            if res_any.data:
+                reg = res_any.data[0]
+                ultima_str = reg.get("ultima_verificacao")
+                if ultima_str:
+                    try:
+                        ultima = datetime.fromisoformat(str(ultima_str).replace("Z", "+00:00"))
+                        # Verifica se a última consulta foi HOJE no horário de Brasília
+                        agora_br = datetime.now(timezone.utc) - timedelta(hours=3)
+                        if ultima.astimezone(timezone(timedelta(hours=-3))).date() == agora_br.date():
+                            usadas = reg.get(coluna, 0)
+                    except Exception:
+                        pass
 
         if ultima:
             agora = datetime.now(timezone.utc)
@@ -101,8 +107,7 @@ def pode_verificar(chat_id: str, tipo: str) -> tuple[bool, str, int]:
 
     except Exception as e:
         logger.error(f"Erro ao verificar limite: {e}")
-        return (True, "", limite)
-
+        return (False, "erro_interno", 0)
 
 def registrar_verificacao(chat_id: str, tipo: str):
     """Incrementa o contador de verificações do usuário."""
@@ -138,7 +143,7 @@ def registrar_verificacao(chat_id: str, tipo: str):
                 "chat_id": str(chat_id),
                 "data": hoje,
                 "verificacoes_todas": 0,
-                "verificacoes_especificas": 0,
+                "verificacoes_especifico": 0,
                 "ultima_verificacao": agora,
             }
             dados[coluna] = 1

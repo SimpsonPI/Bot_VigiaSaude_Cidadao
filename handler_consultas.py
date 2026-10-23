@@ -187,10 +187,10 @@ async def comando_verificar_todas(update: Update, context: ContextTypes.DEFAULT_
         else:
             await update.message.reply_text(
                 "⏳ <b>Limite diário de verificações completas atingido!</b>\n\n"
-                "Você já usou sua <b>1 verificação completas</b> de hoje.\n\n"
+                "Você já usou suas <b>3 verificações completass</b> de hoje.\n\n"
                 "💡 <i>Alternativas:</i>\n"
                 "• O bot continua monitorando automaticamente a cada 6h 🕐\n"
-                "• Volte amanhã para mais 1 verificação completas",
+                "• Volte amanhã para mais 3 verificações completass",
                 parse_mode="HTML",
             )
         return
@@ -263,7 +263,7 @@ async def _verificar_todas_bg(regulacoes, msg_alvo, restantes):
 
             restantes_agora = max(0, restantes - 1)
             await msg_alvo.reply_text(
-                f"<i>📊 Verificações completas restantes hoje: <b>{restantes_agora}/1</b></i>",
+                f"<i>📊 Verificações completas restantes hoje: <b>{restantes_agora}/3</b></i>",
                 parse_mode="HTML",
             )
         else:

@@ -189,55 +189,55 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     nome = user.first_name or "Usuário"
 
     mensagem = (
-        f"👋 Olá, <b>{nome}</b>! Bem-vindo ao <b>VigiaSaude Cidadao</b>.\n\n"
+        f"👋 Olá, <b>{nome}</b>! Seja bem-vindo(a) ao <b>VigiaSaude Cidadao</b>.\n\n"
         f"🆔 <b>Seu ID do Telegram:</b> <code>{user.id}</code>\n\n"
         "Acesse todas as opções e comandos diretamente pelo menu nativo do Telegram "
         "(botão <b>[/]</b> ao lado da barra de digitação)."
     )
 
-    # 🆕 Aviso de limites (apenas para usuários comuns)
     try:
         from verificacao_limite import pode_verificar, ADMIN_ID
-
         if user.id != ADMIN_ID:
             _, _, rest_todas = pode_verificar(str(user.id), "todas")
-            _, _, rest_esp = pode_verificar(str(user.id), "especifico")
-
             mensagem += (
                 f"\n\n📊 <b>Seus limites de hoje:</b>\n"
-                f"• <b>Verificar todas:</b> {rest_todas}/1\n"
-                f"• <b>Verificar específico:</b> 0/0\n\n"
-                f"<i>🕐 O bot monitora suas regulações automaticamente "
-                f"a cada 6 horas, mesmo sem você pedir!</i>"
+                f"• <b>Verificar todas:</b> {rest_todas}/3\n"
             )
-    except Exception as e:
-        logger.warning(f"Erro ao carregar limites em /start: {e}")
+    except Exception:
+        pass
 
-    # Se veio de clique em botão (callback_query)
+    teclado = obter_menu_principal()
+    teclado_suporte = InlineKeyboardMarkup([
+        [InlineKeyboardButton("📚 Instruções de Uso", callback_data="suporte")]
+    ])
+
     if update.callback_query:
+        await update.callback_query.answer()
         try:
-            await update.callback_query.answer()
-            await update.callback_query.edit_message_text(
-                mensagem, parse_mode="HTML", reply_markup=obter_menu_principal()
-            )
+            await update.callback_query.message.delete()
         except Exception:
-            # Se não conseguir editar (mensagem antiga), envia nova
-            await context.bot.send_message(
-                chat_id=update.effective_chat.id,
-                text=mensagem,
-                parse_mode="HTML",
-                reply_markup=obter_menu_principal(),
-            )
-    # Se veio de comando /start ou /iniciar
-    elif update.message:
-        await update.message.reply_text(
-            mensagem,
-            reply_markup=obter_menu_principal(),
-            parse_mode="HTML",
-        )
+            pass
+        chat_id = update.callback_query.message.chat_id
+    else:
+        chat_id = update.message.chat_id
+
+    await context.bot.send_message(
+        chat_id=chat_id,
+        text=mensagem,
+        reply_markup=teclado,
+        parse_mode="HTML"
+    )
+    
+    await context.bot.send_message(
+        chat_id=chat_id,
+        text="💡 <i>Precisa de ajuda com o VigiaSaúde?</i>",
+        reply_markup=teclado_suporte,
+        parse_mode="HTML"
+    )
+    
+    # Envia o botão de instruções de uso
 
 
-# --- TECLADO E LÓGICA COMERCIAL DE PLANOS ---
 async def obter_menu_planos(user_id: int) -> InlineKeyboardMarkup:
     ja_usou_degustacao = False
     try:
@@ -774,7 +774,7 @@ async def configurar_menu_comandos(app):
     comandos = [
         BotCommand("iniciar", "🚀 Menu principal e boas-vindas"),
         BotCommand("verificar_todos", "🔍 Verificar todas as regulações"),
-        BotCommand("verificar_especifico", "🎯 Verificar regulação específica"),
+        
         BotCommand("cadastrar_nova", "➕ Cadastrar nova regulação"),
         BotCommand("corrigir", "✏️ Corrigir dados de regulação"),
         BotCommand("excluir", "🗑️ Excluir uma regulação"),
@@ -789,7 +789,6 @@ async def sair_consulta_por_texto(update: Update, context: ContextTypes.DEFAULT_
     await update.message.reply_text(
         "❌ Você digitou algo que não é um número de regulação válido.\n\n"
         "Saindo da consulta específica. Para tentar novamente, "
-        "use /verificar_especifico."
     )
     context.user_data.pop("_em_fluxo_admin", None)
     context.user_data.clear()
@@ -999,7 +998,6 @@ async def faq_consultar(update: Update, context: ContextTypes.DEFAULT_TYPE):
     texto = (
         "🔍 <b>Como consultar minhas regulações?</b>\n\n"
         "• Para ver todas as suas regulações: digite <b>/verificar_todos</b>.\n"
-        "• Para consultar uma regulação específica: digite <b>/verificar_especifico</b>."
     )
     teclado = InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Voltar", callback_data="suporte")]])
     await query.edit_message_text(texto, parse_mode="HTML", reply_markup=teclado)

@@ -75,7 +75,7 @@ MSG_MODAL_RESPOSTA = "✍️ <b>Modo de Resposta Ativado</b> para o ID: <code>{u
 
 MSG_BOAS_VINDAS = (
     "🤖 <b>Central de Atendimento ao Usuário VigiaSaude Cidadao</b>\n\n"
-    "Seja bem-vindo(a)! Como posso ajudá-lo hoje?\n\n"
+    "É um prazer ter você aqui! Como posso ajudá-lo hoje?\n\n"
     "🔹 <b>Menu Principal:</b>\n"
     "• /ajuda - Perguntas Frequentes (FAQ)\n"
     "• /suporte - Falar com a equipe de suporte\n"
