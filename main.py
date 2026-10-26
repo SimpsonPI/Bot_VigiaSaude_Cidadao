@@ -1,10 +1,12 @@
 from dotenv import load_dotenv
 from bot_seguranca import global_error_handler
+
 load_dotenv()
 
 # Só DEPOIS os outros imports
 from handler_broadcast import conv_broadcast
 from admin_panel import comando_painel, callback_painel
+from handler_meus_cadastros import comando_meus_cadastros
 from handler_consultas import (
     comando_verificar_todas,
     iniciar_verificar_especifico,
@@ -207,7 +209,7 @@ def main():
 
             raise ApplicationHandlerStop
 
-    #app.add_handler(TypeHandler(Update, verificar_acesso), group=-1)
+    # app.add_handler(TypeHandler(Update, verificar_acesso), group=-1)
     # ═══════════════════════════════════
     app.add_error_handler(erro_global_handler)
 
@@ -226,8 +228,8 @@ def main():
 
     # ConversationHandlers
     app.add_handler(conv_cadastro)
-#     app.add_handler(conv_consulta_especifica)
-    #app.add_handler(conv_corrigir)
+    #     app.add_handler(conv_consulta_especifica)
+    # app.add_handler(conv_corrigir)
     app.add_handler(conv_excluir)
     app.add_handler(conv_envio_midia)
     app.add_handler(conv_criar_enquete)
@@ -239,11 +241,13 @@ def main():
     # app.add_handler(CommandHandler("menu", start))
     app.add_handler(CommandHandler("cadastrar_nova", iniciar_cadastro_manual))
     app.add_handler(CommandHandler("verificar_todos", comando_verificar_todas))
-    #app.add_handler(CommandHandler("verificar_especifico", iniciar_verificar_especifico))
-    #app.add_handler(CommandHandler("corrigir", iniciar_corrigir))
+    # app.add_handler(CommandHandler("verificar_especifico", iniciar_verificar_especifico))
+    # app.add_handler(CommandHandler("corrigir", iniciar_corrigir))
     app.add_handler(CommandHandler("excluir", iniciar_excluir))
     app.add_handler(CommandHandler("privacidade", comando_privacidade))
     app.add_handler(CommandHandler("suporte", menu_suporte))
+    app.add_handler(CommandHandler("meus_cadastros", comando_meus_cadastros))
+    app.add_handler(MessageHandler(filters.Regex("^📋 Meus Cadastros$"), comando_meus_cadastros))
 
     # Comandos admin (institucional)
     app.add_handler(CommandHandler("painel", comando_painel))
@@ -264,8 +268,8 @@ def main():
     app.add_handler(CommandHandler("listar_enquetes", comando_listar_enquetes))
     app.add_handler(CommandHandler("encerrar", comando_encerrar))
     app.add_handler(CommandHandler("apagar_enquete", comando_apagar_enquete))
-    #app.add_handler(CommandHandler("autorizar", comando_autorizar))
-    #app.add_handler(CommandHandler("desautorizar", comando_desautorizar))
+    # app.add_handler(CommandHandler("autorizar", comando_autorizar))
+    # app.add_handler(CommandHandler("desautorizar", comando_desautorizar))
     app.add_handler(CommandHandler("listar_autorizados", comando_listar_autorizados))
 
     # Handler IA do admin

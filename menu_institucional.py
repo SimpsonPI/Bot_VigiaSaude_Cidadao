@@ -10,6 +10,7 @@ async def configurar_menu_institucional(app):
     comandos = [
         BotCommand("start", "👋 Iniciar atendimento"),
         BotCommand("cadastrar_nova", "➕ Cadastrar nova regulação"),
+        BotCommand("meus_cadastros", "📋 Ver minhas regulações"),
         BotCommand("verificar_todos", "🔍 Verificar todas as regulações"),
         BotCommand("excluir", "🗑️ Excluir regulação"),
         BotCommand("suporte", "💬 Central de atendimento"),

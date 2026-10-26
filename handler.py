@@ -21,6 +21,7 @@ from telegram.ext import (
     filters,
 )
 from telegram.warnings import PTBUserWarning
+from handler_meus_cadastros import comando_meus_cadastros
 
 # Silencia os avisos de rastreamento do ConversationHandler
 warnings.filterwarnings("ignore", category=PTBUserWarning)
@@ -197,19 +198,15 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     try:
         from verificacao_limite import pode_verificar, ADMIN_ID
+
         if user.id != ADMIN_ID:
             _, _, rest_todas = pode_verificar(str(user.id), "todas")
-            mensagem += (
-                f"\n\n📊 <b>Seus limites de hoje:</b>\n"
-                f"• <b>Verificar todas:</b> {rest_todas}/3\n"
-            )
+            mensagem += f"\n\n📊 <b>Seus limites de hoje:</b>\n• <b>Verificar todas:</b> {rest_todas}/3\n"
     except Exception:
         pass
 
     teclado = obter_menu_principal()
-    teclado_suporte = InlineKeyboardMarkup([
-        [InlineKeyboardButton("📚 Instruções de Uso", callback_data="suporte")]
-    ])
+    teclado_suporte = InlineKeyboardMarkup([[InlineKeyboardButton("📚 Instruções de Uso", callback_data="suporte")]])
 
     if update.callback_query:
         await update.callback_query.answer()
@@ -221,20 +218,15 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         chat_id = update.message.chat_id
 
-    await context.bot.send_message(
-        chat_id=chat_id,
-        text=mensagem,
-        reply_markup=teclado,
-        parse_mode="HTML"
-    )
-    
+    await context.bot.send_message(chat_id=chat_id, text=mensagem, reply_markup=teclado, parse_mode="HTML")
+
     await context.bot.send_message(
         chat_id=chat_id,
         text="💡 <i>Precisa de ajuda com o VigiaSaúde?</i>",
         reply_markup=teclado_suporte,
-        parse_mode="HTML"
+        parse_mode="HTML",
     )
-    
+
     # Envia o botão de instruções de uso
 
 
@@ -774,7 +766,6 @@ async def configurar_menu_comandos(app):
     comandos = [
         BotCommand("iniciar", "🚀 Menu principal e boas-vindas"),
         BotCommand("verificar_todos", "🔍 Verificar todas as regulações"),
-        
         BotCommand("cadastrar_nova", "➕ Cadastrar nova regulação"),
         BotCommand("corrigir", "✏️ Corrigir dados de regulação"),
         BotCommand("excluir", "🗑️ Excluir uma regulação"),
@@ -824,15 +815,13 @@ conv_cadastro = ConversationHandler(
         CallbackQueryHandler(iniciar_cadastro_manual, pattern="^cadastrar_nova$"),
     ],
     states={
-        ETAPA_ESCOLHER_SUS: [
-    CallbackQueryHandler(callback_escolher_sus, pattern="^(usar_sus_.*|novo_sus|cancelar)$")
-],
+        ETAPA_ESCOLHER_SUS: [CallbackQueryHandler(callback_escolher_sus, pattern="^(usar_sus_.*|novo_sus|cancelar)$")],
         ETAPA_SUS: [MessageHandler(filters.TEXT & ~filters.COMMAND, receber_sus)],
         ETAPA_CONFIRMAR_REUSO: [  # ← NOVO BLOCO
             CallbackQueryHandler(callback_reuso_dados, pattern="^reuso_(sim|nao)$"),
         ],
         ETAPA_NOME: [MessageHandler(filters.TEXT & ~filters.COMMAND, receber_nome)],
-        #ETAPA_CELULAR: [MessageHandler(filters.TEXT & ~filters.COMMAND, receber_celular)],
+        # ETAPA_CELULAR: [MessageHandler(filters.TEXT & ~filters.COMMAND, receber_celular)],
         ETAPA_NASCIMENTO: [MessageHandler(filters.TEXT & ~filters.COMMAND, receber_nascimento)],
         ETAPA_REGULACAO: [MessageHandler(filters.TEXT & ~filters.COMMAND, receber_regulacao)],
         ETAPA_CBO: [MessageHandler(filters.TEXT & ~filters.COMMAND, receber_cbo)],
@@ -1034,9 +1023,7 @@ async def mostrar_email_suporte(update: Update, context: ContextTypes.DEFAULT_TY
     await query.answer()
 
     await query.message.reply_text(
-        "📧 <b>Email de Suporte</b>\n\n"
-        "<code>suportevigiasaude@gmail.com</code>\n\n"
-        "Toque no email acima para copiar.",
+        "📧 <b>Email de Suporte</b>\n\n<code>suportevigiasaude@gmail.com</code>\n\nToque no email acima para copiar.",
         parse_mode="HTML",
     )
 

@@ -28,12 +28,13 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "(botão <b>[/]</b> ao lado da barra de digitação)."
     )
 
-    await update.message.reply_text(mensagem, reply_markup=obter_menu_principal()
+    await update.message.reply_text(mensagem, reply_markup=obter_menu_principal())
 
-    teclado_suporte = InlineKeyboardMarkup([
-        [InlineKeyboardButton("📚 Instruções de Uso", callback_data="suporte")]
-    ])
-    await update.message.reply_text("💡 <i>Precisa de ajuda com o VigiaSaúde?</i>", reply_markup=teclado_suporte, parse_mode="HTML")
+
+teclado_suporte = InlineKeyboardMarkup([[InlineKeyboardButton("📚 Instruções de Uso", callback_data="suporte")]])
+await update.message.reply_text(
+    "💡 <i>Precisa de ajuda com o VigiaSaúde?</i>", reply_markup=teclado_suporte, parse_mode="HTML"
+)
 
 
 async def comando_ajuda(update: Update, context: ContextTypes.DEFAULT_TYPE):
