@@ -112,7 +112,7 @@ def _texto_sistema() -> str:
         "• <code>/suporte</code> — Central de Atendimento\n\n"
         "<b>📌 Informações:</b>\n"
         f"• Seu ID: <code>{ADMIN_ID}</code>\n"
-        "• Bot: @vigiasaude_cidadao_bot"
+        "• Bot: @vigiasaude_teresina_bot"
     )
 
 
@@ -128,11 +128,7 @@ async def comando_painel(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text("⛔ Acesso restrito a administradores.")
         return
 
-    texto = (
-        "🎛️ <b>PAINEL DE CONTROLE ADMINISTRATIVO</b>\n"
-        "VigiaSaúde — Central de Operações\n\n"
-        "Selecione uma categoria:"
-    )
+    texto = "🎛️ <b>PAINEL DE CONTROLE ADMINISTRATIVO</b>\nVigiaSaúde — Central de Operações\n\nSelecione uma categoria:"
     teclado = _teclado_principal()
 
     if update.message:
@@ -169,9 +165,7 @@ async def callback_painel(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if data == "painel_inicio":
         texto = (
-            "🎛️ <b>PAINEL DE CONTROLE ADMINISTRATIVO</b>\n"
-            "VigiaSaúde — Central de Operações\n\n"
-            "Selecione uma categoria:"
+            "🎛️ <b>PAINEL DE CONTROLE ADMINISTRATIVO</b>\nVigiaSaúde — Central de Operações\n\nSelecione uma categoria:"
         )
         await query.edit_message_text(texto, parse_mode="HTML", reply_markup=_teclado_principal())
         return

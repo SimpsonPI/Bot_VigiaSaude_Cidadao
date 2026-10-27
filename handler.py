@@ -94,7 +94,7 @@ except ImportError:
         return ""
 
 
-URL_TERMO_LGPD = "https://telegra.ph/DECLARA%C3%87%C3%83O-DE-INDEPEND%C3%8ANCIA-08-13"
+URL_TERMO_LGPD = "COLE_SEU_LINK_LIMPO_AQUI"
 VARREDURA_INTERVALO_MINUTOS = 120
 
 logger = logging.getLogger(__name__)
@@ -153,16 +153,19 @@ async def callback_privacidade_voltar(update: Update, context: ContextTypes.DEFA
     query = update.callback_query
     await query.answer()
 
-    texto = "Clique no botão abaixo para ler a nossa Política de Privacidade e Termos de Uso:"
+    texto = "Acesse os nossos documentos legais nos botões abaixo:"
     teclado = InlineKeyboardMarkup(
         [
+            [InlineKeyboardButton("📜 Termo de Uso", url="COLE_SEU_LINK_LIMPO_AQUI")],
             [
                 InlineKeyboardButton(
-                    "🔒 Abrir Política de Privacidade e Termos",
-                    callback_data="abrir_termo_privacidade",
+                    "🔒 Política de Privacidade",
+                    url="COLE_SEU_LINK_LIMPO_AQUI",
                 )
             ],
-            [InlineKeyboardButton("💬 Dúvidas / Suporte (FAQ)", callback_data="abrir_faq_suporte")],
+            [
+                InlineKeyboardButton("💬 Dúvidas / Suporte (FAQ)", callback_data="suporte")
+            ],  # Mantenha esta linha se ela já existia
         ]
     )
 
@@ -311,24 +314,59 @@ async def enviar_alerta_plano_expirado(update: Update, context: ContextTypes.DEF
         await update.message.reply_text(texto, parse_mode="HTML", reply_markup=teclado)
 
 
+from telegram import LinkPreviewOptions  # Adicione este import no topo se necessário
+
+
+from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
+from telegram.ext import ContextTypes
+
+
 async def comando_privacidade(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    # COLE O SEU LINK LIMPO DO TELEGRAPH AQUI:
+    link_telegraph = "https://telegra.ph/DECLARA%C3%87%C3%83O-DE-INDEPEND%C3%8ANCIA-08-13"
+
+    texto = f"Acesse o nosso Termo de Uso e Política de Privacidade no link abaixo:\n\n{link_telegraph}"
+
     teclado = InlineKeyboardMarkup(
         [
-            [
-                InlineKeyboardButton(
-                    "🔒 Abrir Política de Privacidade e Termos",
-                    callback_data="abrir_termo_privacidade",
-                )
-            ],
             [InlineKeyboardButton("💬 Dúvidas / Suporte (FAQ)", callback_data="abrir_faq_suporte")],
         ]
     )
-    texto = "Clique no botão abaixo para ler a nossa Política de Privacidade e Termos de Uso:"
+
     if update.callback_query:
         await update.callback_query.answer()
-        await update.callback_query.edit_message_text(texto, reply_markup=teclado)
+        # Apenas edita a mensagem, não envia nova
+        try:
+            await update.callback_query.edit_message_text(
+                text=texto, reply_markup=teclado, disable_web_page_preview=False
+            )
+        except Exception:
+            pass
     else:
-        await update.message.reply_text(texto, reply_markup=teclado)
+        # Se o usuário digitou /privacidade
+        await update.message.reply_text(text=texto, reply_markup=teclado, disable_web_page_preview=False)
+
+    # A NOVA FORMA DE FORÇAR A PRÉVIA NO TELEGRAM:
+    opcoes_previa = LinkPreviewOptions(is_disabled=False, show_above_text=True)
+
+    if update.callback_query:
+        await update.callback_query.answer()
+        try:
+            await update.callback_query.message.delete()
+        except Exception:
+            pass
+
+        await context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text=texto,
+            parse_mode="HTML",
+            reply_markup=teclado,
+            link_preview_options=opcoes_previa,
+        )
+    else:
+        await update.message.reply_text(
+            texto, parse_mode="HTML", reply_markup=teclado, link_preview_options=opcoes_previa
+        )
 
 
 # --- FUNÇÕES DE AJUDA E SUPORTE ---

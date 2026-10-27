@@ -42,11 +42,11 @@ from telegram.ext import (
 )
 from telegram.request import HTTPXRequest
 from telegram.error import TimedOut, NetworkError
+from handler_privacidade import comando_privacidade
 
 from admin_ia_controller import executar_acao_admin
 
 from handler import (
-    comando_privacidade,
     comando_verificar_todas,
     conv_cadastro,
     conv_consulta_especifica,

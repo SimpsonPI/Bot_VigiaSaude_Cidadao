@@ -99,37 +99,3 @@ async def callback_ajuda(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
     await query.edit_message_text(script_atendimento, parse_mode="HTML", reply_markup=teclado)
-
-
-async def comando_privacidade(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Exibe os Termos de Uso e Política de Privacidade oficiais do VigiaSaude Cidadao."""
-    texto = (
-        "🔒 <b>Política de Privacidade e Termos de Uso — VigiaSaude Cidadao</b>\n\n"
-        "O <b>VigiaSaude Cidadao</b> é uma ferramenta independente desenvolvida para facilitar o "
-        "acompanhamento e a notificação de status de solicitações de regulação (consultas, "
-        "exames e procedimentos) junto aos sistemas públicos de saúde.\n\n"
-        "<b>1. Proteção de Dados (LGPD)</b>\n"
-        "• Dados como CPF e número do Cartão SUS são utilizados <b>exclusivamente</b> para "
-        "consultar a situação do seu agendamento nos portais oficiais de regulação.\n"
-        "• Suas informações sensíveis de saúde são criptografadas e mantidas em ambiente seguro.\n"
-        "• Não comercializamos nem compartilhamos seus dados com terceiros.\n\n"
-        "<b>2. Isenção de Responsabilidade</b>\n"
-        "• O VigiaSaude Cidadao <b>não possui vínculo oficial</b> com o Ministério da Saúde ou secretarias de saúde.\n"
-        "• A responsabilidade pelo agendamento, marcação e atendimento é exclusivamente das centrais de regulação do SUS.\n"
-        "• Notificamos você assim que houver alteração nos sistemas públicos, mas não alteramos posições ou filas de espera.\n\n"
-        "<b>3. Seus Direitos</b>\n"
-        "• Você tem total autonomia para excluir suas consultas e dados cadastrados a qualquer momento através do menu do bot.\n\n"
-        "<i>Ao utilizar o VigiaSaude Cidadao, você declara estar de acordo com estes termos.</i>"
-    )
-
-    teclado = InlineKeyboardMarkup([[InlineKeyboardButton("💬 Dúvidas / Suporte", url="https://t.me/seu_suporte")]])
-
-    if update.callback_query:
-        await update.callback_query.answer()
-        try:
-            await update.callback_query.edit_message_text(texto, parse_mode="HTML", reply_markup=teclado)
-        except Exception as e:
-            logger.error(f"Erro ao editar mensagem de privacidade: {e}")
-            await update.callback_query.message.reply_text(texto, parse_mode="HTML", reply_markup=teclado)
-    else:
-        await update.message.reply_text(texto, parse_mode="HTML", reply_markup=teclado)

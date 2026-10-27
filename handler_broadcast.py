@@ -25,7 +25,7 @@ CABECALHO = "📢 <b>VIGIASAÚDE — COMUNICADO OFICIAL</b>\n\n"
 RODAPE = (
     "\n\n━━━━━━━━━━━━━━━━━━━━━\n"
     "🏥 <i>Ferramenta independente de monitoramento</i>\n"
-    "🤖 Saiba mais: <b>@vigiasaude_cidadao_bot</b>"
+    "🤖 Saiba mais: <b>@vigiasaude_teresina_bot</b>"
 )
 
 # ==========================================
@@ -249,7 +249,7 @@ async def broadcast_receber_conteudo(update: Update, context: ContextTypes.DEFAU
         preview_texto = msg.text
     else:
         await msg.reply_text(
-            "⚠️ Tipo de conteúdo não suportado.\n\n" "Envie apenas <b>texto</b>, <b>foto</b> ou <b>vídeo</b>.",
+            "⚠️ Tipo de conteúdo não suportado.\n\nEnvie apenas <b>texto</b>, <b>foto</b> ou <b>vídeo</b>.",
             parse_mode="HTML",
         )
         return BROADCAST_ENVIAR_CONTEUDO
@@ -318,7 +318,7 @@ async def broadcast_receber_conteudo(update: Update, context: ContextTypes.DEFAU
         # Volta para a prévia (reprocessa)
         novo_estado = "ATIVADA" if not atual else "DESATIVADA"
         await query.edit_message_text(
-            f"👋 Saudação automática <b>{novo_estado}</b>.\n\n" "Envie qualquer coisa para gerar nova prévia.",
+            f"👋 Saudação automática <b>{novo_estado}</b>.\n\nEnvie qualquer coisa para gerar nova prévia.",
         )
         return BROADCAST_ENVIAR_CONTEUDO
 
@@ -359,8 +359,7 @@ async def broadcast_confirmar(update: Update, context: ContextTypes.DEFAULT_TYPE
 
     # Mensagem de progresso
     await query.edit_message_text(
-        f"📤 <b>Enviando para {len(chat_ids)} usuário(s)...</b>\n\n"
-        "<i>Aguarde — isso pode levar alguns segundos.</i>",
+        f"📤 <b>Enviando para {len(chat_ids)} usuário(s)...</b>\n\n<i>Aguarde — isso pode levar alguns segundos.</i>",
         parse_mode="HTML",
     )
 
@@ -435,9 +434,7 @@ async def broadcast_confirmar(update: Update, context: ContextTypes.DEFAULT_TYPE
             logger.error(f"Falha broadcast para {cid}: {repr(e)}")
 
     # Relatório final
-    texto_final = (
-        "✅ <b>Broadcast finalizado!</b>\n\n" f"📤 <b>Enviadas:</b> {enviados}\n" f"❌ <b>Falhas:</b> {falhas}\n"
-    )
+    texto_final = f"✅ <b>Broadcast finalizado!</b>\n\n📤 <b>Enviadas:</b> {enviados}\n❌ <b>Falhas:</b> {falhas}\n"
 
     if detalhes_falhas:
         texto_final += "\n📋 <b>Detalhes das falhas:</b>\n" + "\n".join(detalhes_falhas[:10])
@@ -446,7 +443,7 @@ async def broadcast_confirmar(update: Update, context: ContextTypes.DEFAULT_TYPE
 
     if bloqueados:
         texto_final += (
-            f"\n\n💡 <i>{len(bloqueados)} usuário(s) bloquearam o bot. " "Considere removê-los com /bloquear.</i>"
+            f"\n\n💡 <i>{len(bloqueados)} usuário(s) bloquearam o bot. Considere removê-los com /bloquear.</i>"
         )
 
     try:
