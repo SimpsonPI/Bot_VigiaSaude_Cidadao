@@ -8,12 +8,14 @@ async def comando_meus_cadastros(update: Update, context: ContextTypes.DEFAULT_T
     chat_id = update.effective_user.id
 
     try:
+        # Adicionamos 'cbo' e 'procedimento' na busca do banco de dados
         res = (
             supabase.table("VigiaSaude_cidadao")
-            .select("numero_reg, nome_paciente, status")
+            .select("numero_reg, nome_paciente, cbo, procedimento")
             .eq("chat_id", chat_id)
             .execute()
         )
+
         registros = res.data
 
         if not registros:
@@ -25,10 +27,14 @@ async def comando_meus_cadastros(update: Update, context: ContextTypes.DEFAULT_T
 
         msg = "<b>📋 Suas Regulações Cadastradas:</b>\n\n"
         for i, r in enumerate(registros, 1):
-            status = r.get("status") or "Aguardando verificação"
+            # Pega os dados, e se estiver vazio, coloca 'Não informado'
+            especialidade = r.get("cbo") or "Não informada"
+            procedimento = r.get("procedimento") or "Não informado"
+
             msg += f"{i}. ID: <code>{r.get('numero_reg')}</code>\n"
             msg += f"👤 Paciente: {r.get('nome_paciente')}\n"
-            msg += f"📊 Status: {status}\n\n"
+            msg += f"🩺 Especialidade: {especialidade}\n"
+            msg += f"📋 Procedimento: {procedimento}\n\n"
 
         msg += "<i>Para atualizar o status, use o botão '🔄 Verificar Todas'.</i>"
 

@@ -1,5 +1,6 @@
 from dotenv import load_dotenv
 from bot_seguranca import global_error_handler
+from handler_admin_metricas import comando_admin_metricas
 
 load_dotenv()
 
@@ -271,7 +272,7 @@ def main():
     # app.add_handler(CommandHandler("autorizar", comando_autorizar))
     # app.add_handler(CommandHandler("desautorizar", comando_desautorizar))
     app.add_handler(CommandHandler("listar_autorizados", comando_listar_autorizados))
-
+    app.add_handler(CommandHandler("admin_metricas", comando_admin_metricas))
     # Handler IA do admin
     app.add_handler(
         MessageHandler(filters.TEXT & ~filters.COMMAND, executar_acao_admin),
@@ -302,6 +303,7 @@ def main():
     app.add_handler(CallbackQueryHandler(receber_voto, pattern="^voto_\\d+_\\d+$"))
     app.add_handler(CallbackQueryHandler(voto_ja_registrado, pattern="^voto_ja_registrado$"))
     app.add_handler(CallbackQueryHandler(callback_resultado, pattern="^enq_(encerrar|reabrir|apagar|atualizar)_\\d+$"))
+    app.add_handler(CallbackQueryHandler(comando_admin_metricas, pattern="^admin_metricas$"))
 
     # ─── Servidor HTTP auxiliar ───
     PORT = int(os.environ.get("PORT", "8080"))

@@ -34,6 +34,9 @@ def _teclado_principal() -> InlineKeyboardMarkup:
                 InlineKeyboardButton("📋 Enquetes", callback_data="painel_enquetes"),
                 InlineKeyboardButton("🔧 Sistema", callback_data="painel_sistema"),
             ],
+            [
+                InlineKeyboardButton("📈 Métricas de Uso", callback_data="admin_metricas"),  # <-- NOVO BOTÃO AQUI
+            ],
             [InlineKeyboardButton("❌ Fechar Painel", callback_data="painel_fechar")],
         ]
     )

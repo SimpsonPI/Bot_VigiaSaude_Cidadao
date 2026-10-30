@@ -169,11 +169,19 @@ async def comando_verificar_todas(update: Update, context: ContextTypes.DEFAULT_
         await enviar_alerta_plano_expirado(update, context)
         return
 
-    # 🆕 LIMITE DIÁRIO + INTERVALO
+        # 🆕 LIMITE DIÁRIO + INTERVALO
     from verificacao_limite import pode_verificar, registrar_verificacao
+    from config import is_admin
 
     chat_id = str(user_id)
-    pode, motivo, restantes = pode_verificar(chat_id, "todas")
+
+    # Bypass total para o Admin: ignora limite e tempo de espera
+    if is_admin(user_id):
+        pode = True
+        motivo = ""
+        restantes = 999
+    else:
+        pode, motivo, restantes = pode_verificar(chat_id, "todas")
 
     if not pode:
         if motivo.startswith("intervalo:"):
@@ -205,7 +213,7 @@ async def comando_verificar_todas(update: Update, context: ContextTypes.DEFAULT_
 
     if not regulacoes:
         await update.message.reply_text(
-            "ℹ️ <b>Você não possui nenhuma regulação cadastrada.</b>\n" "Use o menu para cadastrar.",
+            "ℹ️ <b>Você não possui nenhuma regulação cadastrada.</b>\nUse o menu para cadastrar.",
             parse_mode="HTML",
         )
         return
@@ -444,7 +452,7 @@ async def processar_verificar_especifico(update: Update, context: ContextTypes.D
         try:
             alvo = update.effective_message
             if alvo:
-                await alvo.reply_text("⚠️ Ocorreu um erro ao consultar esta regulação. " "Tente novamente mais tarde.")
+                await alvo.reply_text("⚠️ Ocorreu um erro ao consultar esta regulação. Tente novamente mais tarde.")
         except Exception:
             pass
     finally:
@@ -460,7 +468,7 @@ async def _verificar_especifico_bg(num_reg, user_id, msg_alvo, restantes):
             resultado = await asyncio.wait_for(consultar_com_limite(num_reg), timeout=30)
         except asyncio.TimeoutError:
             await msg_alvo.reply_text(
-                "⏳ <b>O portal FMS está demorando para responder.</b>\n\n" "Tente novamente em alguns minutos.",
+                "⏳ <b>O portal FMS está demorando para responder.</b>\n\nTente novamente em alguns minutos.",
                 parse_mode="HTML",
             )
             return
