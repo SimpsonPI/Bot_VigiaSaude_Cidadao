@@ -1,6 +1,14 @@
 from dotenv import load_dotenv
 from bot_seguranca import global_error_handler
 from handler_admin_metricas import comando_admin_metricas
+from handler_broadcast_cidadao import (
+    iniciar_broadcast,
+    receber_e_disparar,
+    cancelar_broadcast,
+    ESCOLHER_TIPO,
+    RECEBER_CONTEUDO,
+)
+from telegram.ext import CallbackQueryHandler, MessageHandler, filters
 
 load_dotenv()
 
@@ -304,6 +312,12 @@ def main():
     app.add_handler(CallbackQueryHandler(voto_ja_registrado, pattern="^voto_ja_registrado$"))
     app.add_handler(CallbackQueryHandler(callback_resultado, pattern="^enq_(encerrar|reabrir|apagar|atualizar)_\\d+$"))
     app.add_handler(CallbackQueryHandler(comando_admin_metricas, pattern="^admin_metricas$"))
+    conv_broadcast_cidadao = ConversationHandler(
+        entry_points=[CallbackQueryHandler(iniciar_broadcast, pattern="^bc_(texto|foto|video)$")],
+        states={RECEBER_CONTEUDO: [MessageHandler(filters.TEXT | filters.PHOTO | filters.VIDEO, receber_e_disparar)]},
+        fallbacks=[CommandHandler("cancelar", cancelar_broadcast)],
+    )
+    app.add_handler(conv_broadcast_cidadao)
 
     # ─── Servidor HTTP auxiliar ───
     PORT = int(os.environ.get("PORT", "8080"))

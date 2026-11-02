@@ -443,10 +443,6 @@ async def comando_retirar_degustacao(update: Update, context: ContextTypes.DEFAU
 async def comando_aviso(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Envia uma mensagem de broadcast (aviso em massa) para todos os usuários cadastrados."""
     if not eh_admin(update.effective_user.id):
-        await update.message.reply_text("❌ Você não tem permissão para usar este comando.")
-        return
-
-    if not context.args:
         await update.message.reply_text(
             "⚠️ <b>Uso correto:</b> <code>/aviso &lt;Sua mensagem aqui&gt;</code>",
             parse_mode="HTML",
@@ -454,41 +450,50 @@ async def comando_aviso(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     mensagem_broadcast = " ".join(context.args)
+    if not mensagem_broadcast:
+        await update.message.reply_text("⚠️ Digite a mensagem após o comando. Ex: /aviso Olá, pessoal!")
+        return
 
     try:
-        response = supabase.table("assinaturas").select("chat_id").execute()
+        # 🔄 CORREÇÃO: Busca na tabela correta do Teresina
+        response = supabase.table("VigiaSaude_cidadao").select("chat_id").execute()
         registros = response.data
 
         if not registros:
             await update.message.reply_text("ℹ️ Nenhum usuário encontrado para enviar o aviso.")
             return
 
-        await update.message.reply_text(f"🚀 Iniciando envio de aviso para {len(registros)} usuários...")
+        # 🧹 CORREÇÃO: Remove chat_ids duplicados (para não mandar 2x pro mesmo usuário)
+        chat_ids_unicos = list(set(str(reg.get("chat_id")) for reg in registros if reg.get("chat_id")))
+        # 🚫 FILTRO: Remove o ID do Admin da lista de envio
+        from config import is_admin
+
+        chat_ids_unicos = [cid for cid in chat_ids_unicos if not is_admin(int(cid))]
+
+        await update.message.reply_text(f"🚀 Iniciando envio de aviso para {len(chat_ids_unicos)} usuários únicos...")
 
         enviados = 0
         falhas = 0
 
-        for reg in registros:
-            chat_id = reg.get("chat_id")
+        for chat_id in chat_ids_unicos:
             try:
+                # Aqui adicionamos o rótulo no topo da mensagem
+                texto_com_rotulo = f"📢 <b>Aviso VigiaSaúde Teresina:</b>\n\n{mensagem_broadcast}"
+
                 await context.bot.send_message(
                     chat_id=chat_id,
-                    text=f"📢 <b>AVISO IMPORTANTE - VigiaSaude Cidadao</b>\n\n{mensagem_broadcast}",
+                    text=texto_com_rotulo,  # <-- Usa o texto com o rótulo
                     parse_mode="HTML",
                 )
                 enviados += 1
-            except Exception:
+                await asyncio.sleep(0.05)  # 🛡️ Previne bloqueio do Telegram
+            except Exception as e:
                 falhas += 1
 
-        await update.message.reply_text(
-            f"✅ <b>Broadcast Finalizado!</b>\n\n"
-            f"• Enviados com sucesso: <code>{enviados}</code>\n"
-            f"• Falhas (usuários que bloquearam o bot): <code>{falhas}</code>",
-            parse_mode="HTML",
-        )
+        await update.message.reply_text(f"✅ Envio concluído!\n\n📬 Enviados: {enviados}\n❌ Falhas: {falhas}")
+
     except Exception as e:
-        logger.error(f"[ADMIN] Erro no broadcast: {e}")
-        await update.message.reply_text(f"❌ Erro ao executar o envio em massa: {e}")
+        await update.message.reply_text(f"❌ Erro ao buscar usuários: {e}")
 
 
 async def comando_menu_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):

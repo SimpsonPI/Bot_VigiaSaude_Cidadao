@@ -42,6 +42,19 @@ def _teclado_principal() -> InlineKeyboardMarkup:
     )
 
 
+def _teclado_comunicacao():
+    return InlineKeyboardMarkup(
+        [
+            [
+                InlineKeyboardButton("📝 Texto", callback_data="bc_texto"),
+                InlineKeyboardButton("📸 Imagem", callback_data="bc_foto"),
+                InlineKeyboardButton("🎥 Vídeo", callback_data="bc_video"),
+            ],
+            [InlineKeyboardButton("⬅️ Voltar", callback_data="painel_inicio")],
+        ]
+    )
+
+
 def _teclado_voltar() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         [
@@ -172,7 +185,12 @@ async def callback_painel(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         await query.edit_message_text(texto, parse_mode="HTML", reply_markup=_teclado_principal())
         return
+    if data == "painel_comunicacao":
+        texto = "📢 <b>Comunicação em Massa</b>\n\nEscolha o tipo de conteúdo que deseja enviar para todos os usuários:"
+        await query.edit_message_text(texto, parse_mode="HTML", reply_markup=_teclado_comunicacao())
+        return
 
+    # Seu dicionário mapeamento continua aqui em baixo...
     mapeamento = {
         "painel_relatorios": _texto_relatorios,
         "painel_planos": _texto_planos,
