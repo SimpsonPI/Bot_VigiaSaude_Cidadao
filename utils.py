@@ -35,9 +35,9 @@ from telegram import ReplyKeyboardMarkup
 
 TECLADO_MENU = ReplyKeyboardMarkup(
     [
-        ["➕ Cadastrar Nova", "🔄 Verificar Todas"],
-        ["📋 Meus Cadastros"],
-        ["💬 Suporte", "🔒 Privacidade"]
+        ["/cadastrar_nova", "/verificar_todos"],
+        ["/meus_cadastros"],
+        ["/suporte", "/privacidade"]
     ],
     resize_keyboard=True
 )

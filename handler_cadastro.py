@@ -1,8 +1,10 @@
 # handler_cadastro.py
 import logging
 import os
+
 logger = logging.getLogger(__name__)
 import re
+from bot_seguranca import safe_callback
 from config import is_admin
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.ext import ContextTypes, ConversationHandler
@@ -30,35 +32,45 @@ from utils import (
 
 async def iniciar_cadastro_manual(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Inicia o cadastro de uma nova regulação institucional."""
+    from config import is_admin  # Importação segura no topo da função
+
     user_id = update.effective_user.id
+    admin_user = is_admin(user_id)  # Verifica se é admin logo de cara
 
     # 1. Verifica se o usuário já tem cadastros no histórico vitalício
     try:
-        res_hist = supabase.table("VigiaSaude_cidadao_autorizados").select("cadastros_realizados").eq("chat_id", user_id).execute()
+        res_hist = (
+            supabase.table("VigiaSaude_cidadao_autorizados")
+            .select("cadastros_realizados")
+            .eq("chat_id", user_id)
+            .execute()
+        )
         cadastros_feitos = res_hist.data[0].get("cadastros_realizados", 0) if res_hist.data else 0
     except Exception as e:
         logger.error(f"Erro ao buscar histórico: {e}")
         cadastros_feitos = 0
 
-    # 2. Bloqueio do Freemium
-    if cadastros_feitos >= 2:
-        await update.message.reply_text(
-            "🚫 <b>Limite Gratuito Atingido</b>\n\n"
-            "Você já utilizou suas 2 vagas gratuitas no VigiaSaúde Cidadão.\n\n"
-            "Para monitorar novos exames, conheça nossa versão Premium:\n"
-            "👉 @vigiasaude_bot",
-            parse_mode="HTML"
-        )
-        return ConversationHandler.END
-
-    # 3. Conta quantas regulações ativas ele tem agora (para mostrar no menu)
+    # 2. Conta quantas regulações ativas ele tem agora
     try:
         res_ativos = supabase.table("VigiaSaude_cidadao").select("id", count="exact").eq("chat_id", user_id).execute()
         total_regs = res_ativos.count if hasattr(res_ativos, "count") else len(res_ativos.data or [])
     except Exception as e:
+        logger.error(f"Erro ao buscar ativos: {e}")
         total_regs = 0
 
-        if total_regs >= LIMITE_MAX and not is_admin(user_id):
+    # 3. BLOQUEIOS (Só aplica se NÃO for admin)
+    if not admin_user:
+        if cadastros_feitos >= 2:
+            await update.message.reply_text(
+                "🚫 <b>Limite Gratuito Atingido</b>\n\n"
+                "Você já utilizou suas 2 vagas gratuitas no VigiaSaúde Cidadão.\n\n"
+                "Para monitorar novos exames, conheça nossa versão Premium:\n"
+                "👉 @vigiasaude_bot",
+                parse_mode="HTML",
+            )
+            return ConversationHandler.END
+
+        if total_regs >= 2:
             await update.message.reply_text(
                 f"📌 <b>Limite de regulações atingido</b>\n\n"
                 f"Você já cadastrou <b>{total_regs}/2</b> regulações — "
@@ -70,9 +82,12 @@ async def iniciar_cadastro_manual(update: Update, context: ContextTypes.DEFAULT_
                 "Assim que excluir uma, poderá cadastrar novas normalmente. 😊",
                 parse_mode="HTML",
             )
-        return ConversationHandler.END
+            return ConversationHandler.END
 
-    # Continua o fluxo — verifica SUS ja cadastrados
+    # ---------------------------------------------------------
+    # Se chegou até aqui, é Admin OU está dentro do limite.
+    # ---------------------------------------------------------
+
     context.user_data.clear()
     context.user_data["_em_fluxo_admin"] = "cadastro"
 
@@ -99,7 +114,7 @@ async def iniciar_cadastro_manual(update: Update, context: ContextTypes.DEFAULT_
     if not sus_lista:
         await update.message.reply_text(
             "📝 <b>Iniciando cadastro de nova regulação.</b>\n\n"
-                f"Você tem <b>{total_regs}/2</b> regulações cadastradas.\n\n"
+            f"Você tem <b>{total_regs}/2</b> regulações cadastradas.\n\n"
             "Por favor, digite o <b>número do Cartão SUS</b> do paciente (15 dígitos):",
             parse_mode="HTML",
             reply_markup=TECLADO_CANCELAR,
@@ -142,7 +157,6 @@ async def iniciar_cadastro_manual(update: Update, context: ContextTypes.DEFAULT_
 
     return ETAPA_ESCOLHER_SUS
 
-from bot_seguranca import safe_callback
 
 @safe_callback
 async def callback_escolher_sus(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
@@ -200,33 +214,27 @@ async def callback_escolher_sus(update: Update, context: ContextTypes.DEFAULT_TY
             pass
 
         # Busca o caminho absoluto da imagem
-        caminho_imagem = os.path.join(os.path.dirname(__file__), "modelo_comprovante.jpg")
-
-                # Busca o caminho absoluto da imagem
         caminho_imagem = os.path.join(os.path.dirname(__file__), "comprovante_sus.jpg")
 
         # Envia a foto como nova mensagem
         try:
             with open(caminho_imagem, "rb") as foto:
                 await context.bot.send_photo(
-                    chat_id=update.effective_chat.id,
-                    photo=foto,
-                    caption=texto_id,
-                    parse_mode="HTML"
+                    chat_id=update.effective_chat.id, photo=foto, caption=texto_id, parse_mode="HTML"
                 )
         except Exception as e:
             logger.error(f"Erro ao enviar imagem: {e}")
             await context.bot.send_message(
                 chat_id=update.effective_chat.id,
                 text=texto_id + "\n\n(Imagem ilustrativa indisponível no momento)",
-                parse_mode="HTML"
+                parse_mode="HTML",
             )
         except Exception as e:
             logger.error(f"Erro ao enviar imagem: {e}")
             await context.bot.send_message(
                 chat_id=update.effective_chat.id,
                 text=texto_id + "\n\n(Imagem ilustrativa indisponível no momento)",
-                parse_mode="HTML"
+                parse_mode="HTML",
             )
 
         return ETAPA_REGULACAO
@@ -247,7 +255,7 @@ async def receber_sus(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
 
     if not numero_sus:
         await update.message.reply_text(
-            "⚠️ Não consegui identificar nenhum dígito.\n\n" "Digite o número do Cartão SUS (apenas números):"
+            "⚠️ Não consegui identificar nenhum dígito.\n\nDigite o número do Cartão SUS (apenas números):"
         )
         return ETAPA_SUS
 
@@ -295,9 +303,23 @@ async def receber_sus(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
     except Exception as e:
         print(f"ERRO no bloco do SUS: {e}")
 
-    print("DEBUG: SUS não encontrado. Indo para ETAPA_NOME.")
-    await update.message.reply_text("Qual o nome completo do paciente?")
-    return ETAPA_NOME
+    print("DEBUG: SUS não encontrado. Indo para ETAPA_REGULACAO.")
+
+    # Envia a imagem de exemplo junto com o pedido do ID
+    texto_id = (
+        "Agora digite o <b>ID da Regulação</b> (8 dígitos):\n\n"
+        "📌 <i>Confira no seu comprovante de agendamento, conforme o exemplo abaixo:</i>"
+    )
+
+    caminho_imagem = os.path.join(os.path.dirname(__file__), "comprovante_sus.jpg")
+    try:
+        with open(caminho_imagem, "rb") as foto:
+            await update.message.reply_photo(photo=foto, caption=texto_id, parse_mode="HTML")
+    except Exception as e:
+        logger.error(f"Erro ao enviar imagem no SUS: {e}")
+        await update.message.reply_text(texto_id, parse_mode="HTML")
+
+    return ETAPA_REGULACAO
 
 
 async def callback_reuso_dados(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
@@ -315,7 +337,7 @@ async def callback_reuso_dados(update: Update, context: ContextTypes.DEFAULT_TYP
         context.user_data["procedimento"] = dados.get("procedimento")
 
         await query.edit_message_text(
-            "✅ <b>Dados carregados com sucesso!</b>\n\n" "Agora digite apenas o <b>Número da Regulação</b>:",
+            "✅ <b>Dados carregados com sucesso!</b>\n\nAgora digite apenas o <b>Número da Regulação</b>:",
             parse_mode="HTML",
         )
         return ETAPA_REGULACAO
@@ -335,15 +357,14 @@ async def callback_reuso_dados(update: Update, context: ContextTypes.DEFAULT_TYP
 async def receber_nome(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     if await verificar_se_e_menu_e_executar(update, context):
         return ConversationHandler.END
-        
+
     nome = update.message.text.strip()
     nome = nome.replace("<", "").replace(">", "").replace("&", "&amp;")[:80]
     context.user_data["nome"] = nome
-    
+
     # Agora pede a Data de Nascimento em vez do celular
     await update.message.reply_text(
-        "Agora, digite a <b>Data de Nascimento</b> do paciente (ex: DD/MM/AAAA):", 
-        parse_mode="HTML"
+        "Agora, digite a <b>Data de Nascimento</b> do paciente (ex: DD/MM/AAAA):", parse_mode="HTML"
     )
     return ETAPA_NASCIMENTO
 
@@ -375,11 +396,13 @@ async def receber_nascimento(update: Update, context: ContextTypes.DEFAULT_TYPE)
         "🆔 <b>Digite o ID da Regulação:</b>"
     )
 
-    # Envia a foto do comprovante
+    # Envia a foto do comprovante com o nome correto
+    caminho_imagem = os.path.join(os.path.dirname(__file__), "comprovante_sus.jpg")
     try:
-        with open("modelo_comprovante.jpg", "rb") as foto:
+        with open(caminho_imagem, "rb") as foto:
             await update.message.reply_photo(photo=foto, caption=texto_id, parse_mode="HTML")
-    except FileNotFoundError:
+    except Exception as e:
+        logger.error(f"Erro ao enviar imagem: {e}")
         await update.message.reply_text(texto_id, parse_mode="HTML")
 
     return ETAPA_REGULACAO
@@ -434,13 +457,9 @@ async def receber_regulacao(update: Update, context: ContextTypes.DEFAULT_TYPE) 
     context.user_data["numero_regulacao"] = num_reg
 
     # ✅ FORA DO TRY/EXCEPT — sempre pede a especialidade no fluxo normal
-    await update.message.reply_text(
-        "Agora informe a <b>Especialidade</b> da consulta/exame\n"
-        "<i>(Ex: Consulta / Exame)</i>\n\n"
-        "Se não souber, digite <code>0</code> para pular.",
-        parse_mode="HTML",
-    )
-    return ETAPA_CBO
+    # Agora pede o Nome, pois o SUS foi digitado antes
+    await update.message.reply_text("Qual o nome completo do paciente?")
+    return ETAPA_NOME
 
 
 async def receber_cbo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
@@ -496,9 +515,11 @@ async def receber_procedimento(update: Update, context: ContextTypes.DEFAULT_TYP
     )
     return ETAPA_LGPD
 
+
 from bot_seguranca import safe_callback
 
 from bot_seguranca import safe_callback
+
 
 @safe_callback
 async def finalizar_cadastro(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
@@ -547,7 +568,9 @@ async def finalizar_cadastro(update: Update, context: ContextTypes.DEFAULT_TYPE)
                 .execute()
             )
             atual = res_atual.data[0].get("cadastros_realizados", 0) if res_atual.data else 0
-            supabase.table("VigiaSaude_cidadao_autorizados").update({"cadastros_realizados": atual + 1}).eq("chat_id", user_id).execute()
+            supabase.table("VigiaSaude_cidadao_autorizados").update({"cadastros_realizados": atual + 1}).eq(
+                "chat_id", user_id
+            ).execute()
         except Exception as e:
             print(f"Erro ao atualizar contador: {e}")
 
@@ -561,13 +584,13 @@ async def finalizar_cadastro(update: Update, context: ContextTypes.DEFAULT_TYPE)
             chat_id=chat_id,
             text="✅ <b>Regulação cadastrada com sucesso!</b>\n\nVocê receberá alertas quando houver mudanças.",
             parse_mode="HTML",
-            reply_markup=TECLADO_MENU
+            reply_markup=TECLADO_MENU,
         )
     else:
         await context.bot.send_message(
             chat_id=chat_id,
             text="❌ <b>Erro interno ao salvar.</b> Tente novamente mais tarde.",
-            reply_markup=TECLADO_MENU
+            reply_markup=TECLADO_MENU,
         )
 
     context.user_data.clear()

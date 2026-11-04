@@ -1,6 +1,7 @@
 from dotenv import load_dotenv
 from bot_seguranca import global_error_handler
 from handler_admin_metricas import comando_admin_metricas
+from telegram.ext import PicklePersistence
 from handler_broadcast_cidadao import (
     iniciar_broadcast,
     receber_e_disparar,
@@ -11,7 +12,7 @@ from handler_broadcast_cidadao import (
 from telegram.ext import CallbackQueryHandler, MessageHandler, filters
 
 load_dotenv()
-
+persistence = PicklePersistence(filepath="bot_persistencia.pickle")
 # Só DEPOIS os outros imports
 from handler_broadcast import conv_broadcast
 from admin_panel import comando_painel, callback_painel
@@ -180,7 +181,15 @@ def main():
         pool_timeout=30.0,
     )
 
-    app = ApplicationBuilder().token(token).request(request).get_updates_request(request).post_init(post_init).build()
+    app = (
+        ApplicationBuilder()
+        .token(token)
+        .request(request)
+        .get_updates_request(request)
+        .persistence(persistence)  # <-- ADICIONE ESTA LINHA
+        .post_init(post_init)
+        .build()
+    )
 
     # ═══ MIDDLEWARE DE AUTORIZAÇÃO ═══
     async def verificar_acesso(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -348,7 +357,7 @@ def main():
 
     logger.info("Iniciando o bot VigiaSaude Cidadao Cidadao via polling...")
     app.add_error_handler(global_error_handler)
-    app.run_polling(drop_pending_updates=True)
+    app.run_polling(drop_pending_updates=False)
 
 
 if __name__ == "__main__":
