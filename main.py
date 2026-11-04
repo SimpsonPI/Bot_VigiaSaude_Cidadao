@@ -12,6 +12,7 @@ from handler_broadcast_cidadao import (
 from telegram.ext import CallbackQueryHandler, MessageHandler, filters
 
 load_dotenv()
+
 persistence = PicklePersistence(filepath="bot_persistencia.pickle")
 # Só DEPOIS os outros imports
 from handler_broadcast import conv_broadcast

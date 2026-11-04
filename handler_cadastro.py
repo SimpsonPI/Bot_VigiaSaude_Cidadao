@@ -88,7 +88,15 @@ async def iniciar_cadastro_manual(update: Update, context: ContextTypes.DEFAULT_
     # Se chegou até aqui, é Admin OU está dentro do limite.
     # ---------------------------------------------------------
 
-    context.user_data.clear()
+    # Limpa APENAS os dados de fluxos anteriores, mas não trava o atual
+    context.user_data.pop("sus", None)
+    context.user_data.pop("nome", None)
+    context.user_data.pop("nascimento", None)
+    context.user_data.pop("numero_regulacao", None)
+    context.user_data.pop("cbo", None)
+    context.user_data.pop("procedimento", None)
+
+    context.user_data["_em_fluxo_admin"] = "cadastro"
     context.user_data["_em_fluxo_admin"] = "cadastro"
 
     try:
@@ -453,13 +461,32 @@ async def receber_regulacao(update: Update, context: ContextTypes.DEFAULT_TYPE) 
     except Exception as e:
         logger.error(f"Erro ao verificar duplicata no cadastro: {e}")
 
-    # ✅ Salva o número da regulação
+        # ✅ Salva o número da regulação
     context.user_data["numero_regulacao"] = num_reg
 
-    # ✅ FORA DO TRY/EXCEPT — sempre pede a especialidade no fluxo normal
-    # Agora pede o Nome, pois o SUS foi digitado antes
-    await update.message.reply_text("Qual o nome completo do paciente?")
-    return ETAPA_NOME
+    # 🔍 VERIFICA SE O NOME JÁ FOI PREENCHIDO (ex: pelo botão "Usar mesmo Cartão")
+    if context.user_data.get("nome"):
+        # Se já tem o nome, pula para a próxima etapa que falta
+        if context.user_data.get("nascimento"):
+            # Se já tem nascimento também, pula direto para o CBO (Especialidade)
+            await update.message.reply_text(
+                "Agora informe a <b>Especialidade</b> da consulta/exame.\n"
+                "<i>(ex: CARDIOLOGISTA, OFTALMOLOGISTA, ORTOPEDISTA)</i>\n\n"
+                "Se não souber, digite <code>0</code> para pular.",
+                parse_mode="HTML",
+            )
+            return ETAPA_CBO
+
+        else:
+            # Se tem nome mas falta nascimento, pede a data
+            await update.message.reply_text(
+                "Agora digite a <b>Data de Nascimento</b> do paciente (ex: DD/MM/AAAA):", parse_mode="HTML"
+            )
+            return ETAPA_NASCIMENTO
+    else:
+        # Se NÃO tem nome (fluxo manual do zero), pede o nome
+        await update.message.reply_text("Qual o nome completo do paciente?")
+        return ETAPA_NOME
 
 
 async def receber_cbo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
@@ -471,9 +498,7 @@ async def receber_cbo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
     if valor == "0":
         context.user_data["cbo"] = ""
         await update.message.reply_text(
-            "⏭️ <b>Especialidade pulada.</b>\n\n"
-            "Agora informe a <b>descrição do Procedimento/Exame / Consulta</b>:\n"
-            "<i>(Ex: Consulta / Exame)</i>",
+            "Agora informe o <b>Procedimento/Exame</b>.\n<i>(ex: CONSULTA, ULTRASSONOGRAFIA, EXAME DE SANGUE)</i>",
             parse_mode="HTML",
         )
         return ETAPA_PROCEDIMENTO
