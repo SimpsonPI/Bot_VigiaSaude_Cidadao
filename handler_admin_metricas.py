@@ -37,7 +37,7 @@ async def comando_admin_metricas(update: Update, context: ContextTypes.DEFAULT_T
             "📊 <b>PAINEL DO CRIADOR - VIGIASAÚDE TERESINA</b>\n\n"
             f"👥 <b>Usuários únicos no bot:</b> {usuarios_unicos}\n"
             f"📋 <b>Regulações cadastradas:</b> {total_regulacoes}\n\n"
-            f"📈 <i>Média de exames por usuário: {total_regulacoes / usuarios_unicos:.1f}</i>\n\n"
+            f"📈 <i>Média de regulação por usuário: {total_regulacoes / usuarios_unicos:.1f}</i>\n\n"
             "🚀 <i>Continue divulgando! Seu trabalho está chegando às pessoas.</i>"
         )
 

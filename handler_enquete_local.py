@@ -47,21 +47,30 @@ AGUARDANDO_CONFIRMACAO = 5
 
 async def iniciar_criacao_enquete(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not eh_admin(update.effective_user.id):
-        await update.message.reply_text("⛔ Acesso restrito a administradores.")
+        if update.callback_query:
+            await update.callback_query.answer("⛔ Acesso restrito.", show_alert=True)
+        else:
+            await update.message.reply_text("⛔ Acesso restrito a administradores.")
         return ConversationHandler.END
 
     for k in ("enq_pergunta", "enq_opcoes", "enq_destinos"):
         context.user_data.pop(k, None)
 
-    await update.message.reply_text(
+    texto = (
         "📊 <b>Criar Enquete</b>\n\n"
         "Digite a <b>pergunta</b>:\n\n"
         "<i>Ex: Qual sua principal dificuldade no VigiaSaúde?</i>\n\n"
-        "Para cancelar, use /cancelar.",
-        parse_mode="HTML",
+        "Para cancelar, use /cancelar."
     )
-    context.user_data["_em_fluxo_admin"] = "enquete"
 
+    # Se veio de um botão do painel, avisa o Telegram e edita a mensagem
+    if update.callback_query:
+        await update.callback_query.answer()
+        await update.callback_query.edit_message_text(texto, parse_mode="HTML")
+    else:
+        await update.message.reply_text(texto, parse_mode="HTML")
+
+    context.user_data["_em_fluxo_admin"] = "enquete"
     return AGUARDANDO_PERGUNTA
 
 
@@ -109,7 +118,7 @@ async def receber_destino(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if destino == "todos":
         try:
-            res = supabase.table("assinaturas").select("chat_id").execute()
+            res = supabase.table("VigiaSaude_cidadao").select("chat_id").execute()
             chat_ids = list(set(str(r["chat_id"]) for r in res.data if r.get("chat_id")))
         except Exception as e:
             logger.error(f"Erro ao buscar chat_ids: {e}")
@@ -555,8 +564,7 @@ async def comando_apagar_enquete(update: Update, context: ContextTypes.DEFAULT_T
 
     if not context.args:
         await update.message.reply_text(
-            "⚠️ Uso: <code>/apagar_enquete &lt;ID&gt;</code>\n"
-            "Ou <code>/apagar_enquete todas</code> para apagar todas.",
+            "⚠️ Uso: <code>/apagar_enquete &lt;ID&gt;</code>\nOu <code>/apagar_enquete todas</code> para apagar todas.",
             parse_mode="HTML",
         )
         return
@@ -587,12 +595,13 @@ conv_criar_enquete = ConversationHandler(
     entry_points=[
         CommandHandler("criar_enquete", iniciar_criacao_enquete),
         CommandHandler("enviar_enquete", iniciar_criacao_enquete),
+        CallbackQueryHandler(iniciar_criacao_enquete, pattern="^criar_enquete$"),  # <-- ADICIONE ESTA LINHA
     ],
     states={
         AGUARDANDO_PERGUNTA: [MessageHandler(filters.TEXT & ~filters.COMMAND, receber_pergunta)],
         AGUARDANDO_OPCOES: [MessageHandler(filters.TEXT & ~filters.COMMAND, receber_opcoes)],
         AGUARDANDO_DESTINO: [MessageHandler(filters.TEXT & ~filters.COMMAND, receber_destino)],
-        AGUARDANDO_PRAZO: [CallbackQueryHandler(receber_prazo, pattern="^prazo_")],  # ← NOVO
+        AGUARDANDO_PRAZO: [CallbackQueryHandler(receber_prazo, pattern="^prazo_")],
         AGUARDANDO_CONFIRMACAO: [
             CallbackQueryHandler(confirmar_criacao, pattern="^enq_confirmar$"),
             CallbackQueryHandler(cancelar_criacao, pattern="^enq_cancelar$"),

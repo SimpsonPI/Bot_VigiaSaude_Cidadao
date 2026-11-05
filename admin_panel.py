@@ -24,7 +24,6 @@ def _teclado_principal() -> InlineKeyboardMarkup:
         [
             [
                 InlineKeyboardButton("📊 Relatórios", callback_data="painel_relatorios"),
-                InlineKeyboardButton("👑 Planos", callback_data="painel_planos"),
             ],
             [
                 InlineKeyboardButton("🛡️ Segurança", callback_data="painel_seguranca"),
@@ -35,7 +34,7 @@ def _teclado_principal() -> InlineKeyboardMarkup:
                 InlineKeyboardButton("🔧 Sistema", callback_data="painel_sistema"),
             ],
             [
-                InlineKeyboardButton("📈 Métricas de Uso", callback_data="admin_metricas"),  # <-- NOVO BOTÃO AQUI
+                InlineKeyboardButton("➕ Criar Enquete", callback_data="criar_enquete"),  # <-- NOVO BOTÃO AQUI
             ],
             [InlineKeyboardButton("❌ Fechar Painel", callback_data="painel_fechar")],
         ]
@@ -78,18 +77,6 @@ def _texto_relatorios() -> str:
     )
 
 
-def _texto_planos() -> str:
-    return (
-        "👑 <b>GESTÃO DE PLANOS E ACESSOS</b>\n\n"
-        "• <code>/cortesia 123456789</code> — Concede VIP ilimitado\n"
-        "• <code>/remover_cortesia 123456789</code> — Remove cortesia\n"
-        "• <code>/dar_plano 123456789 trimestral 90</code> — Concede plano\n"
-        "• <code>/retirar_plano 123456789</code> — Remove plano pago\n"
-        "• <code>/retirar_degustacao 123456789</code> — Remove degustação\n\n"
-        "<i>💡 Use o ID sem os símbolos &lt; &gt;.</i>"
-    )
-
-
 def _texto_seguranca() -> str:
     return (
         "🛡️ <b>SEGURANÇA</b>\n\n"
@@ -112,6 +99,7 @@ def _texto_comunicacao() -> str:
 def _texto_enquetes() -> str:
     return (
         "📋 <b>ENQUETES</b>\n\n"
+        "• <code>/criar_enquete</code> — ➕ Criar nova enquete\n"
         "• <code>/listar_enquetes</code> — Lista todas\n"
         "• <code>/resultado 5</code> — Resultado resumido\n"
         "• <code>/resultado_detalhado 5</code> — Resultado completo\n"
@@ -193,7 +181,6 @@ async def callback_painel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Seu dicionário mapeamento continua aqui em baixo...
     mapeamento = {
         "painel_relatorios": _texto_relatorios,
-        "painel_planos": _texto_planos,
         "painel_seguranca": _texto_seguranca,
         "painel_comunicacao": _texto_comunicacao,
         "painel_enquetes": _texto_enquetes,

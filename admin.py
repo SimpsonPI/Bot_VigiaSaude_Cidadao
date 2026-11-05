@@ -50,35 +50,32 @@ async def comando_estatisticas(update: Update, context: ContextTypes.DEFAULT_TYP
 
 
 async def comando_listar_ativos(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Lista as últimas assinaturas ativas ou cortesias cadastradas."""
     if not eh_admin(update.effective_user.id):
-        await update.message.reply_text("❌ Você não tem permissão para usar este comando.")
         return
-
     try:
-        response = (
-            supabase.table("assinaturas")
-            .select("chat_id, tipo_plano, status, data_inicio")
-            .eq("status", "ativo")
-            .limit(15)
+        # Busca os últimos cadastros na tabela do Teresina
+        res = (
+            supabase.table("VigiaSaude_cidadao")
+            .select("chat_id, nome_paciente, numero_sus")
+            .order("id", desc=True)
+            .limit(10)
             .execute()
         )
-        registros = response.data
+        registros = res.data
 
         if not registros:
-            await update.message.reply_text("ℹ️ Nenhuma assinatura ativa encontrada no momento.")
+            await update.message.reply_text("ℹ️ Nenhum cadastro encontrado no sistema.")
             return
 
-        texto_lista = "📋 <b>Últimas Assinaturas Ativas (Máx. 15):</b>\n\n"
-        for reg in registros:
-            texto_lista += (
-                f"• ID: <code>{reg.get('chat_id')}</code>\n"
-                f"  Plano: <b>{reg.get('tipo_plano')}</b> | Status: {reg.get('status')}\n\n"
-            )
-        await update.message.reply_text(texto_lista, parse_mode="HTML")
+        texto = "📋 <b>Últimos Cadastros Realizados:</b>\n\n"
+        for r in registros:
+            texto += f"👤 <b>{r.get('nome_paciente')}</b>\n"
+            texto += f"🆔 Chat ID: <code>{r.get('chat_id')}</code>\n"
+            texto += f"💳 SUS: {r.get('numero_sus')}\n\n"
+
+        await update.message.reply_text(texto, parse_mode="HTML")
     except Exception as e:
-        logger.error(f"[ADMIN] Erro ao listar ativos: {e}")
-        await update.message.reply_text("❌ Erro ao buscar lista de ativos.")
+        await update.message.reply_text(f"❌ Erro ao buscar cadastros: {e}")
 
 
 async def comando_bloquear(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -111,7 +108,7 @@ async def comando_bloquear(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def comando_detalhes(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Busca e exibe todas as informações de um usuário específico pelo ID."""
+    """Busca e exibe as regulações de um usuário específico pelo ID do Telegram."""
     if not eh_admin(update.effective_user.id):
         await update.message.reply_text("❌ Você não tem permissão para usar este comando.")
         return
@@ -126,77 +123,28 @@ async def comando_detalhes(update: Update, context: ContextTypes.DEFAULT_TYPE):
     target_id = context.args[0].strip()
 
     try:
-        response = supabase.table("assinaturas").select("*").eq("chat_id", str(target_id)).execute()
+        # 🔄 Busca na tabela correta do Teresina
+        response = supabase.table("VigiaSaude_cidadao").select("*").eq("chat_id", target_id).execute()
         dados = response.data
 
         if not dados:
             await update.message.reply_text(
-                f"ℹ️ Nenhum registro encontrado para o ID <code>{target_id}</code>.",
+                f"ℹ️ Nenhuma regulação encontrada para o ID <code>{target_id}</code>.",
                 parse_mode="HTML",
             )
             return
 
-        user_data = dados[0]
+        # ─── Monta a mensagem com as regulações encontradas ───
+        texto = f"🔍 <b>Regulações do Usuário</b>\n🆔 <code>{target_id}</code>\n\n"
 
-        # ─── Formata as datas ───
-        from datetime import datetime, timezone
-
-        def fmt_data(iso_str):
-            if not iso_str:
-                return "—"
-            try:
-                dt = datetime.fromisoformat(str(iso_str).replace("Z", "+00:00"))
-                return dt.strftime("%d/%m/%Y às %H:%M")
-            except Exception:
-                return str(iso_str)
-
-        # ─── Formata limite_ids ───
-        limite = user_data.get("limite_ids")
-        if limite is None or limite == "":
-            limite_txt = "Ilimitado"
-        else:
-            limite_txt = str(limite)
-
-        # ─── Formata MP ID ───
-        mp_id = user_data.get("mp_payment_id")
-        mp_txt = f"<code>{mp_id}</code>" if mp_id else "Nenhum"
-
-        # ─── Formata tipo de plano ───
-        tipo = str(user_data.get("tipo_plano") or "—").strip().lower()
-        nomes = {
-            "pro": "Pro",
-            "pro_trimestral": "Pro Trimestral",
-            "trimestral": "Pro Trimestral",
-            "pro_semestral": "Pro Semestral",
-            "semestral": "Pro Semestral",
-            "degustacao": "Degustação 🎁",
-            "cortesia": "Cortesia VIP 👑",
-        }
-        tipo_formatado = nomes.get(tipo, tipo.capitalize())
-
-        # ─── Formata status ───
-        status_raw = str(user_data.get("status") or "—").strip().lower()
-        status_emoji = {
-            "ativo": "🟢 Ativo",
-            "active": "🟢 Ativo",
-            "ativa": "🟢 Ativo",
-            "bloqueado": "🔴 Bloqueado",
-            "expirado": "🟡 Expirado",
-        }.get(status_raw, f"⚪ {status_raw.capitalize()}")
-
-        # ─── Monta mensagem final ───
-        texto = (
-            f"🔍 <b>Detalhes do Usuário</b>\n"
-            f"🆔 <code>{target_id}</code>\n\n"
-            f"👑 <b>Plano:</b> {tipo_formatado}\n"
-            f"📊 <b>Status:</b> {status_emoji}\n"
-            f"📅 <b>Início:</b> {fmt_data(user_data.get('data_inicio'))}\n"
-            f"⏰ <b>Vencimento:</b> {fmt_data(user_data.get('data_vencimento'))}\n\n"
-            f"💳 <b>ID Pagamento MP:</b> {mp_txt}\n"
-            f"📈 <b>Limite de Regulações:</b> {limite_txt}\n"
-            f"🎁 <b>Já usou Degustação:</b> {'✅ Sim' if user_data.get('usou_degustacao') else '❌ Não'}\n"
-            f"🔔 <b>Último Aviso Enviado:</b> {user_data.get('ultimo_aviso') or '—'}\n"
-        )
+        for i, reg in enumerate(dados, 1):
+            texto += (
+                f"<b>{i}. Paciente:</b> {reg.get('nome_paciente') or '—'}\n"
+                f"🆔 <b>ID Regulação:</b> <code>{reg.get('numero_reg')}</code>\n"
+                f"🏥 <b>Procedimento:</b> {reg.get('procedimento') or '—'}\n"
+                f"📊 <b>Status:</b> {reg.get('status_anterior_cidadao') or 'Não verificado'}\n"
+                "───────────────────\n"
+            )
 
         await update.message.reply_text(texto, parse_mode="HTML")
 
