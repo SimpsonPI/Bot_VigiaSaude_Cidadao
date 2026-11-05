@@ -28,8 +28,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "(botão <b>[/]</b> ao lado da barra de digitação)."
     )
 
-    await update.message.reply_text(mensagem, reply_markup=obter_menu_principal())
-
 
 teclado_suporte = InlineKeyboardMarkup([[InlineKeyboardButton("📚 Instruções de Uso", callback_data="suporte")]])
 await update.message.reply_text(

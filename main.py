@@ -266,7 +266,6 @@ def main():
     app.add_handler(CommandHandler("privacidade", comando_privacidade))
     app.add_handler(CommandHandler("suporte", menu_suporte))
     app.add_handler(CommandHandler("meus_cadastros", comando_meus_cadastros))
-    app.add_handler(MessageHandler(filters.Regex("^📋 Meus Cadastros$"), comando_meus_cadastros))
 
     # Comandos admin (institucional)
     app.add_handler(CommandHandler("painel", comando_painel))
@@ -328,7 +327,7 @@ def main():
         fallbacks=[CommandHandler("cancelar", cancelar_broadcast)],
     )
     app.add_handler(conv_broadcast_cidadao)
-
+    # 📌 Rota para os botões do teclado inline (InlineKeyboard)
     # ─── Servidor HTTP auxiliar ───
     PORT = int(os.environ.get("PORT", "8080"))
 

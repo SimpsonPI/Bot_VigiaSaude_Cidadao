@@ -189,48 +189,31 @@ async def callback_abrir_termo_privacidade(update: Update, context: ContextTypes
 # --- HANDLER DO COMANDO /START E /INICIAR ---
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handler principal do /start ou /iniciar."""
+    from utils import TECLADO_MENU
+
     user = update.effective_user
     nome = user.first_name or "Usuário"
 
     mensagem = (
         f"👋 Olá, <b>{nome}</b>! Seja bem-vindo(a) ao <b>VigiaSaude Cidadao</b>.\n\n"
         f"🆔 <b>Seu ID do Telegram:</b> <code>{user.id}</code>\n\n"
-        "Acesse todas as opções e comandos diretamente pelo menu nativo do Telegram "
-        "(botão <b>[/]</b> ao lado da barra de digitação)."
+        "Acesse as opções clicando nos botões abaixo:"
     )
 
-    try:
-        from verificacao_limite import pode_verificar, ADMIN_ID
-
-        if user.id != ADMIN_ID:
-            _, _, rest_todas = pode_verificar(str(user.id), "todas")
-            mensagem += f"\n\n📊 <b>Seus limites de hoje:</b>\n• <b>Verificar todas:</b> {rest_todas}/3\n"
-    except Exception:
-        pass
-
-    teclado = obter_menu_principal()
-    teclado_suporte = InlineKeyboardMarkup([[InlineKeyboardButton("📚 Instruções de Uso", callback_data="suporte")]])
-
+    # Se veio de um clique de botão (ex: botão "Voltar")
     if update.callback_query:
         await update.callback_query.answer()
-        try:
-            await update.callback_query.message.delete()
-        except Exception:
-            pass
         chat_id = update.callback_query.message.chat_id
     else:
         chat_id = update.message.chat_id
 
-    await context.bot.send_message(chat_id=chat_id, text=mensagem, reply_markup=teclado, parse_mode="HTML")
-
+    # Envia a mensagem com o TECLADO FÍSICO (ReplyKeyboard)
     await context.bot.send_message(
         chat_id=chat_id,
-        text="💡 <i>Precisa de ajuda com o VigiaSaúde?</i>",
-        reply_markup=teclado_suporte,
+        text=mensagem,
+        reply_markup=TECLADO_MENU,  # <-- AQUI ESTÁ A MUDANÇA (Teclado físico, não inline)
         parse_mode="HTML",
     )
-
-    # Envia o botão de instruções de uso
 
 
 async def obter_menu_planos(user_id: int) -> InlineKeyboardMarkup:

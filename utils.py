@@ -35,11 +35,12 @@ from telegram import ReplyKeyboardMarkup
 
 TECLADO_MENU = ReplyKeyboardMarkup(
     [
-        ["/cadastrar_nova", "/verificar_todos"],
-        ["/meus_cadastros"],
-        ["/suporte", "/privacidade"]
+        ["/iniciar", "/cadastrar_nova"],
+        ["/verificar_todos", "/meus_cadastros"],
+        ["/excluir", "/suporte"],
+        ["/privacidade"],
     ],
-    resize_keyboard=True
+    resize_keyboard=True,
 )
 
 TECLADO_CANCELAR = ReplyKeyboardMarkup([["🚫 Cancelar Operação"]], resize_keyboard=True)
